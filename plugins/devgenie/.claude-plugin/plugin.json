@@ -44,14 +44,5 @@
       "description": "Optional. Leave blank for Lite (free, online: full feature capture + a real MVP build). Enter your DevGenie Pro or Enterprise key to build and gate the production scope from the same captured spec and unlock the independent signed rating gate, premium templates, audit trail and AI-spend chargeback. Get a key at https://smartgenie.co.uk/devgenie.",
       "sensitive": true
     }
-  },
-  "mcpServers": {
-    "devgenie-core": {
-      "type": "http",
-      "url": "https://devgenie-core.bluehill-510b36b6.northeurope.azurecontainerapps.io/mcp",
-      "headers": {
-        "Authorization": "Bearer ${user_config.license_key}"
-      }
-    }
   }
 }
