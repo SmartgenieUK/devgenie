@@ -5,7 +5,7 @@
     "email": "sachin@smartgenie.co.uk"
   },
   "metadata": {
-    "description": "SmartGenie's marketplace — governed, spec-first AI software delivery tools for Claude Code."
+    "description": "SmartGenie's marketplace — governed, spec-first AI software delivery tools for Claude Code. Requires Claude Code v2.1.154 or later."
   },
   "plugins": [
     {
@@ -13,7 +13,7 @@
       "source": "./plugins/devgenie",
       "displayName": "DevGenie",
       "description": "Governed, spec-first AI software delivery: a gated bootstrap (foundation -> independent rating gate -> Phase 0 scaffold -> benchmarked slice builds), integration-first slices, and per-task token metering. Lite is free and online (full feature capture + a real MVP build); Pro builds and gates the production scope from the same captured spec and unlocks the independent signed rating gate, premium templates, an audit-grade decision trail and AI-spend chargeback.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "SmartGenie Ltd",
         "url": "https://smartgenie.co.uk"
