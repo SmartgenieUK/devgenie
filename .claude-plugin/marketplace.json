@@ -1,0 +1,40 @@
+{
+  "name": "smartgenie",
+  "owner": {
+    "name": "SmartGenie Ltd",
+    "email": "sachin@smartgenie.co.uk"
+  },
+  "metadata": {
+    "description": "SmartGenie's marketplace — governed, spec-first AI software delivery tools for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "devgenie",
+      "source": "./plugins/devgenie",
+      "displayName": "DevGenie",
+      "description": "Governed, spec-first AI software delivery: a gated bootstrap (foundation -> independent rating gate -> Phase 0 scaffold -> benchmarked slice builds), integration-first slices, and per-task token metering. Lite is free and online (full feature capture + a real MVP build); Pro builds and gates the production scope from the same captured spec and unlocks the independent signed rating gate, premium templates, an audit-grade decision trail and AI-spend chargeback.",
+      "version": "0.1.0",
+      "author": {
+        "name": "SmartGenie Ltd",
+        "url": "https://smartgenie.co.uk"
+      },
+      "homepage": "https://smartgenie.co.uk/devgenie",
+      "repository": "https://github.com/SmartgenieUK/devgenie",
+      "license": "LicenseRef-SmartGenie-Proprietary",
+      "category": "workflow",
+      "keywords": [
+        "spec-driven-development",
+        "ai-governance",
+        "audit-trail",
+        "ai-cost-metering",
+        "claude-code"
+      ],
+      "tags": [
+        "devgenie",
+        "spec-first",
+        "development-tools",
+        "cost-metering"
+      ]
+    }
+  ]
+}

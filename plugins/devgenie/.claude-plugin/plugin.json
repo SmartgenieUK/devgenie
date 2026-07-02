@@ -1,0 +1,58 @@
+{
+  "name": "devgenie",
+  "displayName": "DevGenie",
+  "version": "0.1.0",
+  "description": "DevGenie - governed, spec-first AI software delivery for Claude Code. Drives a project from brief to first slice through a gated bootstrap: foundation -> independent rating gate -> Phase 0 scaffold -> benchmarked slice builds. Lite is free and online (full feature capture + a real MVP build); Pro builds and gates the production scope from the same captured spec and unlocks the independent signed rating gate, premium templates, an audit-grade decision trail and AI-spend chargeback.",
+  "author": {
+    "name": "SmartGenie Ltd",
+    "email": "sachin@smartgenie.co.uk",
+    "url": "https://smartgenie.co.uk"
+  },
+  "homepage": "https://smartgenie.co.uk/devgenie",
+  "repository": "https://github.com/SmartgenieUK/devgenie",
+  "license": "LicenseRef-SmartGenie-Proprietary",
+  "keywords": [
+    "devgenie",
+    "smartforge",
+    "spec-driven-development",
+    "ai-governance",
+    "audit-trail",
+    "ai-cost-metering",
+    "claude-code"
+  ],
+  "userConfig": {
+    "user_email": {
+      "type": "string",
+      "title": "Your work email",
+      "description": "Optional. Captured once at first run as the identity proxy for AI-spend attribution / chargeback (the EY requirement). A first-run hook writes it to ~/.devgenie/config.json, which the per-project metering hook reads as the highest-precedence source for the ledger's user_email — so attribution does not depend on a possibly-misconfigured git config. It is a named proxy, not a verified login.",
+      "sensitive": false
+    },
+    "org": {
+      "type": "string",
+      "title": "Organisation",
+      "description": "Optional. Your team / organisation name, recorded alongside the identity for grouping chargeback.",
+      "sensitive": false
+    },
+    "stack": {
+      "type": "string",
+      "title": "Default stack",
+      "description": "Optional. The default technology stack (e.g. 'node-ts', 'python'), used to seed scaffold defaults.",
+      "sensitive": false
+    },
+    "license_key": {
+      "type": "string",
+      "title": "DevGenie license key",
+      "description": "Optional. Leave blank for Lite (free, online: full feature capture + a real MVP build). Enter your DevGenie Pro or Enterprise key to build and gate the production scope from the same captured spec and unlock the independent signed rating gate, premium templates, audit trail and AI-spend chargeback. Get a key at https://smartgenie.co.uk/devgenie.",
+      "sensitive": true
+    }
+  },
+  "mcpServers": {
+    "devgenie-core": {
+      "type": "http",
+      "url": "https://devgenie-core.bluehill-510b36b6.northeurope.azurecontainerapps.io/mcp",
+      "headers": {
+        "Authorization": "Bearer ${user_config.license_key}"
+      }
+    }
+  }
+}
