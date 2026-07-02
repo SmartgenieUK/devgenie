@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# prepare-commit-msg — fold the active task's token totals into commit trailers,
+# so the metric is queryable from `git log` and travels with history.
+# Installed into a project by /devgenie:scaffold; activated via core.hooksPath.
+#
+# Task-Id is the CLAUDE.md active-task pointer AT COMMIT TIME — the authoritative attribution key,
+# correct in both interactive AND unattended commits. The ledger's tail row is a turn behind in a
+# single-turn headless session (the SessionEnd hook writes the row only after the turn ends, i.e.
+# after the commit), so we never label the commit from it.
+set -euo pipefail
+root="$(git rev-parse --show-toplevel)"
+task=$(grep -ioE 'ACTIVE TASK( POINTER)?:\s*\S+' "$root/CLAUDE.md" 2>/dev/null | grep -oE '\S+$' | head -n1)
+task="${task:-unattributed}"
+{
+  echo ""
+  echo "Task-Id: $task"
+  # Token totals are emitted only when the ledger's latest row already belongs to this task — true
+  # for a multi-turn interactive commit. In a fresh single-turn headless commit that row does not
+  # exist yet, so the numbers are omitted here (they live, correct, in metrics/token-ledger.jsonl).
+  ledger="$root/metrics/token-ledger.jsonl"
+  if [ -f "$ledger" ]; then
+    row=$(tail -n1 "$ledger" 2>/dev/null || true)
+    if [ -n "$row" ] && [ "$(jq -r '.task // ""' <<<"$row" 2>/dev/null)" = "$task" ]; then
+      echo "Tokens-Total-Billed: $(jq -r '.tokens.total_billed' <<<"$row")"
+      echo "Tokens-Output: $(jq -r '.tokens.output' <<<"$row")"
+    fi
+  fi
+} >> "$1"
