@@ -17,7 +17,7 @@ case "$phase" in
     [ -s docs/ASSUMPTIONS.md ] || block "docs/ASSUMPTIONS.md is missing or empty."
     ok ;;
   scaffold)
-    command -v jq >/dev/null 2>&1 || block "jq is required but not installed."
+    command -v jq >/dev/null 2>&1 || block "jq is required but not installed — install it (macOS: brew install jq · Windows: winget install jqlang.jq · Linux: apt-get install jq)."
     [ -s .devgenie/gate.json ] || block "no rating verdict — run /devgenie:gate first."
     v="$(jq -r '.verdict' .devgenie/gate.json)"
     ind="$(jq -r '.independent' .devgenie/gate.json)"

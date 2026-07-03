@@ -17,6 +17,17 @@ done
 [ -n "$NAME" ] || { echo "usage: scaffold-repo.sh --name <project> [--regulated] [--no-remote] [--org <org>]" >&2; exit 2; }
 [ -e "$NAME" ] && { echo "path '$NAME' already exists" >&2; exit 1; }
 
+# Preflight: the baseline commit needs a git identity. Accept either a configured identity
+# (git config) or one supplied via the environment (GIT_AUTHOR_NAME/EMAIL) — fail early and
+# actionably rather than at commit time.
+if { [ -z "$(git config user.name 2>/dev/null)" ] || [ -z "$(git config user.email 2>/dev/null)" ]; } \
+   && { [ -z "${GIT_AUTHOR_NAME:-}" ] || [ -z "${GIT_AUTHOR_EMAIL:-}" ]; }; then
+  echo "error: no git identity configured — set one before creating a project:" >&2
+  echo "  git config --global user.name  \"Your Name\"" >&2
+  echo "  git config --global user.email \"you@example.com\"" >&2
+  exit 1
+fi
+
 mkdir -p "$NAME/docs/inputs" "$NAME/.devgenie"
 cd "$NAME"
 git init -q
@@ -73,7 +84,11 @@ git commit -q -m "chore: DevGenie governance baseline" \
 echo "created $NAME (phase: foundation_pending)"
 
 if [ "$REMOTE" = 1 ]; then
-  if command -v gh >/dev/null 2>&1; then
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "warning: gh not found — staying local (pass --no-remote to silence, or install: https://cli.github.com)." >&2
+  elif ! gh auth status >/dev/null 2>&1; then
+    echo "warning: gh is installed but not authenticated — run 'gh auth login', then re-run. Staying local." >&2
+  else
     # Resolve the GitHub org — NEVER hardcoded. Precedence: --org flag > plugin userConfig
     # (CLAUDE_PLUGIN_OPTION_ORG) > the first-run sink ~/.devgenie/config.json (.org) > the
     # authenticated gh user's own login. If none resolves, stay local (never guess an org).
@@ -88,7 +103,5 @@ if [ "$REMOTE" = 1 ]; then
       gh repo create "$ORG/$NAME" --private --source=. --remote=origin --push 2>&1 \
         || echo "warning: 'gh repo create' failed — staying local." >&2
     fi
-  else
-    echo "warning: gh not found — staying local (pass --no-remote to silence)." >&2
   fi
 fi
