@@ -41,7 +41,7 @@
     "license_key": {
       "type": "string",
       "title": "DevGenie license key",
-      "description": "Optional. Leave blank for Lite (free, online: full feature capture + a real MVP build). Enter your DevGenie Pro or Enterprise key to build and gate the production scope from the same captured spec and unlock the independent signed rating gate, premium templates, audit trail and AI-spend chargeback. Get a key at https://smartgenie.co.uk/devgenie.",
+      "description": "Required for the preview — enter the DevGenie preview key you were issued. A Lite key gives full feature capture + a real MVP build (online). A Pro or Enterprise key also builds and gates the production scope from the same captured spec, and unlocks the independent signed rating gate, premium templates, audit trail and AI-spend chargeback. Request a key at https://smartgenie.co.uk/devgenie.",
       "sensitive": true
     }
   }

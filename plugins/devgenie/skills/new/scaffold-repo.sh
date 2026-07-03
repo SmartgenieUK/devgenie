@@ -4,7 +4,7 @@
 # by the devgenie-core MCP backend. This script ships no methodology IP.
 set -euo pipefail
 
-NAME=""; REGULATED=0; REMOTE=1; ORG="SmartgenieUK"
+NAME=""; REGULATED=0; REMOTE=1; ORG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --name) NAME="${2:-}"; shift 2 ;;
@@ -74,8 +74,20 @@ echo "created $NAME (phase: foundation_pending)"
 
 if [ "$REMOTE" = 1 ]; then
   if command -v gh >/dev/null 2>&1; then
-    gh repo create "$ORG/$NAME" --private --source=. --remote=origin --push 2>&1 \
-      || echo "warning: 'gh repo create' failed — staying local." >&2
+    # Resolve the GitHub org — NEVER hardcoded. Precedence: --org flag > plugin userConfig
+    # (CLAUDE_PLUGIN_OPTION_ORG) > the first-run sink ~/.devgenie/config.json (.org) > the
+    # authenticated gh user's own login. If none resolves, stay local (never guess an org).
+    [ -z "$ORG" ] && ORG="${CLAUDE_PLUGIN_OPTION_ORG:-}"
+    if [ -z "$ORG" ] && [ -f "$HOME/.devgenie/config.json" ] && command -v jq >/dev/null 2>&1; then
+      ORG="$(jq -r '.org // empty' "$HOME/.devgenie/config.json" 2>/dev/null | tr -d '\r')"
+    fi
+    [ -z "$ORG" ] && ORG="$(gh api user --jq .login 2>/dev/null || true)"
+    if [ -z "$ORG" ]; then
+      echo "warning: no GitHub org resolved (--org / plugin org / ~/.devgenie/config.json / gh auth) — staying local." >&2
+    else
+      gh repo create "$ORG/$NAME" --private --source=. --remote=origin --push 2>&1 \
+        || echo "warning: 'gh repo create' failed — staying local." >&2
+    fi
   else
     echo "warning: gh not found — staying local (pass --no-remote to silence)." >&2
   fi
