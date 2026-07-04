@@ -7,7 +7,11 @@ allowed-tools: [Bash, Read, Write, "mcp__devgenie-core__get_foundation_prompt", 
 
 You are running **/devgenie:foundation**. The methodology is delivered by the server — you fetch it and execute it; you never invent or substitute it.
 
-1. **Preconditions.** Ensure `docs/inputs/` holds at least one non-empty brief file (not just the seed `README.md`). If there is no real brief, stop and ask the user to add one.
+1. **Precondition — intake must have passed (foundation is LOCKED until it does).** Foundation refuses to build on inputs that haven't cleared the Tier-1 intake gate. Verify the **real marker**, never the `state.json` flag:
+   ```
+   jq -e '.gate=="intake" and .verdict=="PASS"' .devgenie/intake.json >/dev/null 2>&1 && echo "OK: intake passed" || echo "BLOCKED: no passed intake"
+   ```
+   If this prints `BLOCKED` (marker missing, or verdict not `PASS`), **stop** and tell the user to run **/devgenie:intake** first (rate the brief in `docs/inputs/`), then re-run `/devgenie:foundation`. Do not proceed.
 2. **Fetch the foundation prompt.** Call the `get_foundation_prompt` tool (the bundled `devgenie-core` MCP server) with `{ project_name, stack_hint?, scope? }`. The server returns the capture/foundation instructions, scope-clamped to your entitlement. If it returns an error envelope (`RATE_LIMITED`, `UPGRADE_REQUIRED`, `CORE_UNREACHABLE`, …), surface it plainly and stop.
 3. **Execute exactly what the server returned** to produce `ARCH.md` and `docs/ASSUMPTIONS.md` from the brief in `docs/inputs/`. Every non-obvious ("assumed") claim in `ARCH.md` must also appear in `docs/ASSUMPTIONS.md`.
 4. **Do NOT rate your own work.** Rating is a separate, fresh-session step (`/devgenie:gate`) — independence is structural.
