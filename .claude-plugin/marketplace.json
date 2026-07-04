@@ -13,7 +13,7 @@
       "source": "./plugins/devgenie",
       "displayName": "DevGenie",
       "description": "Governed, spec-first AI software delivery: a gated bootstrap (foundation -> independent rating gate -> Phase 0 scaffold -> benchmarked slice builds), integration-first slices, and per-task token metering. Lite is free and online (full feature capture + a real MVP build); Pro builds and gates the production scope from the same captured spec and unlocks the independent signed rating gate, premium templates, an audit-grade decision trail and AI-spend chargeback.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "author": {
         "name": "SmartGenie Ltd",
         "url": "https://smartgenie.co.uk"
