@@ -1,7 +1,7 @@
 {
   "name": "devgenie",
   "displayName": "DevGenie",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "DevGenie - governed, spec-first AI software delivery for Claude Code. Drives a project from brief to first slice through a gated bootstrap: foundation -> independent rating gate -> Phase 0 scaffold -> benchmarked slice builds. Lite is free and online (full feature capture + a real MVP build); Pro builds and gates the production scope from the same captured spec and unlocks the independent signed rating gate, premium templates, an audit-grade decision trail and AI-spend chargeback. Requires Claude Code v2.1.154 or later (plugin header interpolation) and network access.",
   "author": {
     "name": "SmartGenie Ltd",
