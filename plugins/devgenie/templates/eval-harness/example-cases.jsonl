@@ -1,0 +1,3 @@
+{"input":"What is the capital of France?","expected":"Paris","predicted":"Paris","tags":["geography"]}
+{"input":"2 + 2 = ?","expected":"4","predicted":"4","tags":["arithmetic"]}
+{"input":"Name the largest planet in our solar system.","expected":"Jupiter","predicted":"Saturn","tags":["astronomy","regression"]}
