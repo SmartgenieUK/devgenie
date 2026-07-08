@@ -15,7 +15,7 @@ case "$phase" in
   intake)
     # Front door: docs/inputs/ must hold REAL material, not just the seed README that
     # scaffold writes (the known false-green). Thin presence — semantic adequacy is the
-    # served intake rubric's job, not this guard's (CR-068).
+    # served intake rubric's job, not this guard's.
     [ -d docs/inputs ] || block "docs/inputs/ missing — create it and add the raw brief / discovery notes."
     real=""
     for f in docs/inputs/*; do
@@ -28,7 +28,7 @@ case "$phase" in
     ok ;;
   foundation)
     # Ready to rate: intake passed AND ARCH.md + ASSUMPTIONS exist. A foundation may only be
-    # rated if built from inputs that cleared the intake gate (CR-030 / CR-068) — so a
+    # rated if built from inputs that cleared the intake gate — so a
     # thin-input build can never reach a PASS marker.
     command -v jq >/dev/null 2>&1 || block "jq is required to read the intake marker — install it (macOS: brew install jq · Windows: winget install jqlang.jq · Linux: apt-get install jq) and retry."
     [ -s .devgenie/intake.json ] || block "no intake result — run /devgenie:intake first (foundation refuses without a passed intake)."
@@ -50,7 +50,51 @@ case "$phase" in
     [ -s docs/TASK_INDEX.md ] || block "docs/TASK_INDEX.md is missing or empty."
     [ -z "$(git status --porcelain)" ] || block "working tree is not clean — commit or stash before a slice (Definition of Ready)."
     ok ;;
+  agent-foundation)
+    # Tier-2 analogue of `foundation` (run by agent-gate): the eval spec AND agent spec must
+    # exist & be non-empty before the Tier-2 gate can rate them. Filenames are
+    # <agent>.eval-spec.json / <agent>.agent-spec.json (agent-id varies) — accept any.
+    # Presence only; schema conformance is rate_agent_foundation's job, server-side.
+    have_eval=""
+    for f in *.eval-spec.json; do
+      [ -s "$f" ] || continue
+      have_eval="$f"; break
+    done
+    have_agent=""
+    for f in *.agent-spec.json; do
+      [ -s "$f" ] || continue
+      have_agent="$f"; break
+    done
+    [ -n "$have_eval" ]  || block "no <agent>.eval-spec.json — run /devgenie:agent-foundation first (nothing to rate)."
+    [ -n "$have_agent" ] || block "no <agent>.agent-spec.json — run /devgenie:agent-foundation first (nothing to rate)."
+    ok ;;
+  agent-scaffold)
+    # Tier-2 crown jewel: cannot scaffold an agent until an INDEPENDENT Tier-2 gate recorded
+    # a PASS (analogue of `scaffold`). Reads .devgenie/agent-gate.json.
+    command -v jq >/dev/null 2>&1 || block "jq is required but not installed — install it (macOS: brew install jq · Windows: winget install jqlang.jq · Linux: apt-get install jq)."
+    [ -s .devgenie/agent-gate.json ] || block "no Tier-2 rating-gate result — run /devgenie:agent-gate in a fresh session first."
+    v="$(jq -r '.verdict // empty' .devgenie/agent-gate.json)"
+    ind="$(jq -r '.independent // empty' .devgenie/agent-gate.json)"
+    [ "$v" = "PASS" ] || block "Tier-2 gate verdict is '$v', not PASS — address the scorecard in /devgenie:agent-foundation."
+    [ "$ind" = "true" ] || block "Tier-2 gate result is not marked independent — re-run /devgenie:agent-gate in a fresh session."
+    ok ;;
+  agent-slice)
+    # Ready to run the prompt->eval->revise loop: the Tier-2 Phase-0 scaffold must exist — an
+    # eval harness runner AND a versioned prompt (prompt v1.0).
+    have_runner=""
+    for f in evals/*/run-evals.sh; do
+      [ -s "$f" ] || continue
+      have_runner="$f"; break
+    done
+    have_prompt=""
+    for f in prompts/*.v*.md; do
+      [ -s "$f" ] || continue
+      have_prompt="$f"; break
+    done
+    [ -n "$have_runner" ] || block "no eval harness (evals/<agent>/run-evals.sh) — run /devgenie:agent-scaffold first."
+    [ -n "$have_prompt" ] || block "no versioned prompt (prompts/<agent>.v*.md) — run /devgenie:agent-scaffold first."
+    ok ;;
   *)
-    echo "usage: guard.sh <intake|foundation|scaffold|slice>" >&2
+    echo "usage: guard.sh <intake|foundation|scaffold|slice|agent-foundation|agent-scaffold|agent-slice>" >&2
     exit 2 ;;
 esac
