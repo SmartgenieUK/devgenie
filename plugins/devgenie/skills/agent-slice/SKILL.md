@@ -28,12 +28,12 @@ The loop's load-bearing property: **every score is tied to the exact `prompt_ver
      bash evals/<agent>/run-evals.sh <agent>.eval-spec.json <version> [--agent-hook <script>]
      ```
      It prints an **EVAL-RUN RESULT** JSON and exits 0; it fails loud (non-zero) on a bad spec or missing dataset — treat any non-zero exit as a hard stop, not a zero score. Capture the printed result to a file (e.g. `result.json`).
-   - **Regression-check (CR-091), before logging.** Compare this run's per-case scores against the last PASSING version already in the log — a case that passed before must not now silently fail:
+   - **Regression check, before logging.** Compare this run's per-case scores against the last PASSING version already in the log — a case that passed before must not now silently fail:
      ```
      bash "${CLAUDE_PLUGIN_ROOT}/templates/eval-harness/check-regression.sh" \
        <agent>.eval-run-log.jsonl result.json <per_case_min>
      ```
-     (`<per_case_min>` comes from `<agent>.eval-spec.json`'s `thresholds.per_case_min`.) This is **one comparison added to this existing step** — not a new loop, not a CI gate (CI-gated enforcement is explicitly deferred, `methodology/docs/quality-flywheel.md`). No prior passing row ⇒ exit 0 (this run is the baseline; nothing to compare). A non-zero exit means a previously-passing case just regressed — treat it **exactly like a failed eval run**: go to Step 4 (diagnose) even if this run's own `pass` reads `true`. Do not log a row and call the loop done over a flagged regression.
+     (`<per_case_min>` comes from `<agent>.eval-spec.json`'s `thresholds.per_case_min`.) This is **one comparison added to this existing step** — not a new loop, not a CI gate (CI-gated enforcement is explicitly deferred until a later release earns it). No prior passing row ⇒ exit 0 (this run is the baseline; nothing to compare). A non-zero exit means a previously-passing case just regressed — treat it **exactly like a failed eval run**: go to Step 4 (diagnose) even if this run's own `pass` reads `true`. Do not log a row and call the loop done over a flagged regression.
    - **Append the durable row** via the WRITER — one FROZEN `eval-run-log/v1` row to `<agent>.eval-run-log.jsonl`:
      ```
      bash "${CLAUDE_PLUGIN_ROOT}/templates/project-metrics/record-eval-run.sh" --result result.json

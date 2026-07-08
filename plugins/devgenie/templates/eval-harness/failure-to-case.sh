@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# failure-to-case.sh — Quality-Flywheel Feedback step TEMPLATE (CR-091).
+# failure-to-case.sh — Quality-Flywheel Feedback step TEMPLATE.
 #
 # Turns ONE failing eval-run-log per-case row into a candidate golden-set case, mechanically.
-# This IS the "template" docs/cr/cr-091.md calls for — a deterministic fill-in-the-blanks stamp.
+# This IS the failure-to-case template — a deterministic fill-in-the-blanks stamp.
 # It is deliberately NOT an automated miner and NOT an LLM-drafted candidate (both explicitly
-# deferred in cr-091.md until a later CR earns them): it invents nothing, it just carries the
+# deferred until a later release earns them): it invents nothing, it just carries the
 # original case's .input/.expected forward, stamps provenance, and lets a human decide the tier
 # and review .expected before committing the line to a tier-bucket dataset file. See
-# methodology/docs/quality-flywheel.md for the full Define -> Instrument -> Evaluate -> Feedback
+# the quality-flywheel guide for the full Define -> Instrument -> Evaluate -> Feedback
 # process this template is the Feedback step of.
 #
-# A per-case eval-run-log row (scores.per_case, CR-088) is only {input, score} — it carries no
-# .expected (methodology/docs/contracts/eval-run-log.md §2a). So this template also takes the
+# A per-case eval-run-log row (scores.per_case) is only {input, score} — it carries no
+# .expected (see the eval-run-log contract §2a). So this template also takes the
 # ORIGINAL dataset case (which has .input/.expected) the failure row's .input identifies, and
 # merges the failing score + run provenance onto it.
 #
@@ -46,7 +46,7 @@ done
 [ -s "$CASE_FILE" ] || fail "--case file not found or empty: $CASE_FILE"
 jq -e . "$CASE_FILE" >/dev/null 2>&1 || fail "--case file is not valid JSON: $CASE_FILE"
 jq -e 'has("input") and has("expected")' "$CASE_FILE" >/dev/null 2>&1 \
-  || fail "--case file must carry .input and .expected (the original dataset case that failed) — see methodology/templates/eval-harness/README.md §2"
+  || fail "--case file must carry .input and .expected (the original dataset case that failed) — see the eval-harness README §2"
 
 [ -n "$SCORE" ] || fail "--score <failing-score> is required (the eval-run-log per-case score that failed)"
 jq -n --argjson s "$SCORE" -e '($s|type=="number")' >/dev/null 2>&1 || fail "--score must be a number: $SCORE"

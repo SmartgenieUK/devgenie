@@ -1,11 +1,11 @@
 # EVAL_SPEC.skeleton.md — Eval-Spec Authoring Guide
 ## <agent-id>.eval-spec.json · v0.1 · <date>
 
-> **This document is the Tier-2 quality bar.** Where a Tier-1 contract is a *type* that others build against, a Tier-2 quality bar is a *score from an eval harness over a dataset* — correctness is not a type-check but a measured number. The `eval-spec` makes that number explicit: the dataset, the scoring function, and the thresholds that define "passing." It is what the `agent-gate` rates (the Tier-2 analogue of `ARCH.md`) and what the eval harness (S8-01) executes.
+> **This document is the Tier-2 quality bar.** Where a Tier-1 contract is a *type* that others build against, a Tier-2 quality bar is a *score from an eval harness over a dataset* — correctness is not a type-check but a measured number. The `eval-spec` makes that number explicit: the dataset, the scoring function, and the thresholds that define "passing." It is what the `agent-gate` rates (the Tier-2 analogue of `ARCH.md`) and what the eval harness executes.
 >
 > Fill every section with *decisions and numbers*, not intentions. A field left as prose aspiration will fail the `jq` validation check at the bottom of this guide. When you cannot commit to a value, state it as an open assumption and route it to `docs/ASSUMPTIONS.md` — a confident number with no backing is a hidden assumption.
 >
-> **Conforms to:** `eval-spec/v1` (contract: `methodology/docs/contracts/eval-spec.md`, frozen 2026-06-28). A breaking schema change bumps to `/v2`; never reshape a field in place.
+> **Conforms to:** `eval-spec/v1` (the eval-spec contract, frozen 2026-06-28). A breaking schema change bumps to `/v2`; never reshape a field in place.
 
 ---
 
@@ -151,7 +151,7 @@ jq -e '
 && echo "eval-spec contract OK"
 ```
 
-Full contract and design notes: `methodology/docs/contracts/eval-spec.md`.
+Full contract and design notes: see the eval-spec contract.
 
 ---
 *SmartGenie Ltd · Proprietary IP. Produced under SmartForge V2.*

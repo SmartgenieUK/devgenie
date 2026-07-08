@@ -314,7 +314,7 @@ $(jq -r '.guardrails[] | "- **\(.):** *(TODO: describe enforcement mechanism)*"'
 
 ## Eval linkage
 
-When this prompt version is evaluated, the eval run-log (agent-spec/v1 S2-04c) ties the score
+When this prompt version is evaluated, the eval run-log ties the score
 to this version string: **${prompt_version}**
 
 - Eval-spec reference: *(TODO: path to <agent>.eval-spec.json)*

@@ -26,8 +26,8 @@ eval-harness/
 ├─ README.md             # this file
 ├─ cases/.gitkeep        # placeholder for your dataset dir (delete once you add real cases)
 ├─ example-cases.jsonl   # 2–3 demo cases with a .predicted field — runs with no hook (§5)
-├─ check-regression.sh   # CR-091: "must not regress vs. last passing version" comparison (§9)
-└─ failure-to-case.sh    # CR-091: Quality-Flywheel Feedback template (§10)
+├─ check-regression.sh   # the regression check: "must not regress vs. last passing version" comparison (§9)
+└─ failure-to-case.sh    # Quality-Flywheel Feedback template (§10)
 ```
 
 ---

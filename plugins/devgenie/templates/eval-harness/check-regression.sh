@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# check-regression.sh — CR-091: "must not regress vs. the last passing version" comparison.
+# check-regression.sh — the regression check: "must not regress vs. the last passing version" comparison.
 #
 # This is a COMPARISON added to the agent-slice loop's EXISTING per-turn run-evals.sh call
 # (agent-slice/SKILL.md Step 3) — it is not a new loop, not a CI gate, and not a dataset-drift
-# dashboard (all three are explicitly deferred in docs/cr/cr-091.md until a later CR earns them).
+# dashboard (all three are explicitly deferred until a later release earns them).
 #
 # Given the agent's append-only eval-run-log.jsonl and the CURRENT run's EVAL-RUN RESULT (the
-# same JSON run-evals.sh prints / record-eval-run.sh consumes — see methodology/docs/contracts/
-# eval-run-log.md), it finds the most recent PRIOR row with pass==true that carries eval-run-log/v2
-# per-case scores (CR-088), and flags any case whose score cleared per_case_min there but falls
+# same JSON run-evals.sh prints / record-eval-run.sh consumes — see the eval-run-log contract),
+# it finds the most recent PRIOR row with pass==true that carries eval-run-log/v2
+# per-case scores, and flags any case whose score cleared per_case_min there but falls
 # below per_case_min in the current run. It never invents a comparison against a run that failed —
 # only a run that ACTUALLY passed is a "last passing version" to guard.
 #
@@ -34,7 +34,7 @@ jq -n --argjson p "$PER_CASE_MIN" -e '($p|type=="number")' >/dev/null 2>&1 \
 [ -s "$CUR" ] || fail "current result file not found or empty: $CUR"
 jq -e . "$CUR" >/dev/null 2>&1 || fail "current result is not valid JSON: $CUR"
 jq -e '(.scores.per_case|type)=="array"' "$CUR" >/dev/null 2>&1 \
-  || fail "current result carries no scores.per_case (CR-088 per-case scores) — run-evals.sh always emits this; refusing to compare without it. Result file: $CUR"
+  || fail "current result carries no scores.per_case (per-case scores) — run-evals.sh always emits this; refusing to compare without it. Result file: $CUR"
 
 # No log yet, or an unreadable/empty one -> nothing to regress against (this run is the baseline).
 if [ ! -s "$LOG" ]; then

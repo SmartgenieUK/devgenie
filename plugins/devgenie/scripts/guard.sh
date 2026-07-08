@@ -15,7 +15,7 @@ case "$phase" in
   intake)
     # Front door: docs/inputs/ must hold REAL material, not just the seed README that
     # scaffold writes (the known false-green). Thin presence — semantic adequacy is the
-    # served intake rubric's job, not this guard's (CR-068).
+    # served intake rubric's job, not this guard's.
     [ -d docs/inputs ] || block "docs/inputs/ missing — create it and add the raw brief / discovery notes."
     real=""
     for f in docs/inputs/*; do
@@ -28,7 +28,7 @@ case "$phase" in
     ok ;;
   foundation)
     # Ready to rate: intake passed AND ARCH.md + ASSUMPTIONS exist. A foundation may only be
-    # rated if built from inputs that cleared the intake gate (CR-030 / CR-068) — so a
+    # rated if built from inputs that cleared the intake gate — so a
     # thin-input build can never reach a PASS marker.
     command -v jq >/dev/null 2>&1 || block "jq is required to read the intake marker — install it (macOS: brew install jq · Windows: winget install jqlang.jq · Linux: apt-get install jq) and retry."
     [ -s .devgenie/intake.json ] || block "no intake result — run /devgenie:intake first (foundation refuses without a passed intake)."

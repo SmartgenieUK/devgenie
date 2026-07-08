@@ -1,37 +1,37 @@
 #!/usr/bin/env bash
-# run-evals.sh — the Tier-2 eval harness runner (SmartForge V2 · S8-01).
+# run-evals.sh — the Tier-2 eval harness runner (SmartForge V2).
 #
-# Consumes a FROZEN eval-spec (v1 or v2 — methodology/docs/contracts/eval-spec.md), runs an
+# Consumes a FROZEN eval-spec (v1 or v2 — see the eval-spec contract), runs an
 # agent over a jsonl dataset, scores each case, aggregates, applies the passing rule, and prints
 # ONE EVAL-RUN RESULT JSON object to stdout.
 #
 # EVAL-RUN RESULT = the frozen eval-run-log row MINUS schema/run_id/ts (those are stamped by
-# the writer, S8-05). Base shape (eval-run-log/v2 — per-case scores, CR-088):
+# the writer). Base shape (eval-run-log/v2 — per-case scores):
 #   { "agent":"<id>", "prompt_version":"<x.y.z>",
 #     "eval_spec":{"id":"<id>","version":"<vN>"},
 #     "scores":{"aggregate":<number>,"n_cases":<int>,
 #               "per_case":[{"input":"<case input>","score":<number>}, ...]},
 #     "pass":<bool> }
 #
-# eval-spec/v2 (CR-089) adds — ALL ADDITIVE, emitted only when the relevant v2 feature is
-# declared, so a v1 spec produces the exact v1/CR-088 result unchanged:
+# eval-spec/v2 adds — ALL ADDITIVE, emitted only when the relevant v2 feature is
+# declared, so a v1 spec produces the exact v1 result unchanged:
 #   scores.trajectory : {aggregate, min, n}     — the trajectory dimension (Efficiency evidence)
 #   scores.safety     : {n_cases, n_failed, pass}— the guardrail/red-team Safety pillar evidence
 #   pillars           : {effectiveness, efficiency, robustness, safety}  — Four-Pillars verdicts
 #   reliability       : {k, passes, pass_k}      — pass^k repeat-run reliability
 # A v1 aggregate reader (scores.aggregate/n_cases + prompt_version) reads a v2 result unchanged.
 #
-# CR-091 (golden-set discipline) adds ONE further ADDITIVE block, a dataset-organization
-# convention rather than a new required schema field — see methodology/templates/eval-harness/
-# README.md §8 and methodology/docs/quality-flywheel.md:
+# Golden-set discipline adds ONE further ADDITIVE block, a dataset-organization
+# convention rather than a new required schema field — see the eval-harness
+# README §8 and the quality-flywheel guide:
 #   scores.tiers : { "<tier>": {n_cases, pass_rate} }  — per-tier pass rates when >=1 case (any
 #   case, effectiveness OR safety) carries an optional ".tier" field ("typical"|"edge"|
-#   "adversarial" by convention). The adversarial tier is the CR-089 guardrail/safety case class's
+#   "adversarial" by convention). The adversarial tier is the guardrail/safety case class's
 #   home, so a tier's n_cases/pass_rate can blend effectiveness passes and safety-probe passes —
 #   both are "did this case behave" evidence. Emitted only when at least one case carries .tier;
-#   a dataset with no tiers produces exactly the pre-CR-091 result (no scores.tiers key at all).
+#   a dataset with no tiers produces exactly the prior result (no scores.tiers key at all).
 #
-# THE FOUR-PILLARS BAR (CR-089) — Safety is a NON-TRADEABLE GATE:
+# THE FOUR-PILLARS BAR — Safety is a NON-TRADEABLE GATE:
 #   overall pass = Effectiveness AND Efficiency AND Safety   (Robustness = the per_case_min floor)
 #   A Safety failure fails the whole bar REGARDLESS of the other pillars — it is a gate, never a
 #   score averaged into the others. "The trajectory is the truth"; a safety leak fails it outright.
@@ -40,7 +40,7 @@
 #   exact_match  — string equality (1.0 / 0.0).
 #   f1           — token-level F1 over .expected vs the agent output (fractional [0,1]).
 #   rubric_judge — a REAL judge, wired via --judge-hook / $DEVGENIE_JUDGE_HOOK. With no judge
-#                  configured it FAILS LOUD — it NEVER silently degrades to exact-match (CR-088).
+#                  configured it FAILS LOUD — it NEVER silently degrades to exact-match.
 #
 # Discovery-Mode: this is the THINNEST real end-to-end harness, not a production rig.
 # It really runs, really scores, and really fails loud. Verify the artifact, not the report.
@@ -61,7 +61,7 @@ usage() {
   cat >&2 <<'EOF'
 usage: run-evals.sh <eval-spec.json> <prompt-version> [--agent-hook <s>] [--judge-hook <s>] [--trajectory-hook <s>] [--trace-out <path>]
 
-  <eval-spec.json>     path to an eval-spec/v1 or /v2 file (methodology/docs/contracts/eval-spec.md)
+  <eval-spec.json>     path to an eval-spec/v1 or /v2 file (see the eval-spec contract)
   <prompt-version>     the prompt version under test, e.g. 1.0.0 (tied to the result so a
                        score is attributable to the exact prompt that produced it)
   --agent-hook <s>     OPTIONAL. A script that, given a case .input on argv[1] AND on stdin,
@@ -76,12 +76,12 @@ usage: run-evals.sh <eval-spec.json> <prompt-version> [--agent-hook <s>] [--judg
                        tool names to stdout. Without it, a case's .predicted_trajectory field is
                        used (deterministic demo/test mode). Only consulted when scoring.trajectory
                        is declared and a case carries .expected_trajectory.
-  --trace-out <path>   OPTIONAL (CR-090, observability seed). Writes a small OTel-shaped run-trace
+  --trace-out <path>   OPTIONAL (observability seed). Writes a small OTel-shaped run-trace
                        artifact to <path>: an agent.session span wrapping per-case agent.think spans
-                       (scores.per_case, CR-088) and agent.tool spans (trajectory data, CR-089) —
+                       (scores.per_case) and agent.tool spans (trajectory data) —
                        populated entirely from data this run already computes, never invented.
                        Absent by default; omitting it changes nothing about stdout. See
-                       methodology/docs/run-trace-scaffold.md (a scaffold, not a frozen contract).
+                       the run-trace scaffold guide (a scaffold, not a frozen contract).
 
 Prints ONE EVAL-RUN RESULT JSON object to stdout and exits 0.
 Fails loud (exit 1, message to stderr) on a missing/invalid eval-spec or dataset, or on a
@@ -99,7 +99,7 @@ PROMPT_VERSION="${2:-}"
 AGENT_HOOK=""
 JUDGE_HOOK="${DEVGENIE_JUDGE_HOOK:-}"   # env default; --judge-hook flag (below) overrides it.
 TRAJ_HOOK=""
-TRACE_OUT=""   # CR-090: optional run-trace artifact path; empty = no trace written (back-compat).
+TRACE_OUT=""   # optional run-trace artifact path; empty = no trace written (back-compat).
 if [ -z "$SPEC" ] || [ -z "$PROMPT_VERSION" ]; then usage; exit 1; fi
 shift 2 || true
 while [ $# -gt 0 ]; do
@@ -133,7 +133,7 @@ done
 [ -s "$SPEC" ] || fail "eval-spec not found or empty: $SPEC"
 jq -e . "$SPEC" >/dev/null 2>&1 || fail "eval-spec is not valid JSON: $SPEC"
 
-# Same contract assertions as methodology/docs/contracts/eval-spec.md §3, widened to v1|v2.
+# Same contract assertions as the eval-spec contract §3, widened to v1|v2.
 jq -e '
   (.schema|test("^eval-spec/v[12]$"))
   and (.agent|type=="string")
@@ -148,7 +148,7 @@ jq -e '
   and (if (.scoring|has("trajectory")) then (.scoring.trajectory.match|IN("in_order","any_order","exact")) else true end)
   and (if (.thresholds|has("pass_k")) then (.thresholds.pass_k|type=="number" and .>=1) else true end)
   and (if (.thresholds|has("trajectory_min")) then (.thresholds.trajectory_min|type=="number") else true end)
-' "$SPEC" >/dev/null 2>&1 || fail "eval-spec does not satisfy eval-spec/v1|v2 (schema/agent/dataset/scoring/thresholds[/trajectory/pass_k]) — see methodology/docs/contracts/eval-spec.md"
+' "$SPEC" >/dev/null 2>&1 || fail "eval-spec does not satisfy eval-spec/v1|v2 (schema/agent/dataset/scoring/thresholds[/trajectory/pass_k]) — see the eval-spec contract"
 
 AGENT="$(jq -r '.agent' "$SPEC")"
 SPEC_VERSION="$(jq -r '.schema | sub("^eval-spec/";"")' "$SPEC")"   # "eval-spec/v2" -> "v2"
@@ -301,10 +301,10 @@ obtain_trajectory() {
 
 # ---- one scoring pass over the whole dataset --------------------------------
 # Emits ONE summary JSON to stdout; writes per-case {input,score} lines to $1 (the per_case file,
-# consumed by the eval-run-log/v2 scores.per_case, CR-088) and per-case trajectory evidence
+# consumed by the eval-run-log/v2 scores.per_case) and per-case trajectory evidence
 # {input,expected_trajectory,actual_trajectory,score} lines to $2 (the run-trace seed's agent.tool
-# spans, CR-090 — a local scratch artifact, not part of any locked schema) and per-case tier
-# evidence {tier,pass} lines to $3 (CR-091's scores.tiers — a local scratch artifact too, only
+# spans — a local scratch artifact, not part of any locked schema) and per-case tier
+# evidence {tier,pass} lines to $3 (the tiers' scores.tiers — a local scratch artifact too, only
 # written for cases that carry an optional .tier field). Re-reads the dataset each call so pass^k
 # repeats are independent runs (a stateful --agent-hook can vary its output across repeats — that
 # is exactly what pass^k measures).
@@ -330,7 +330,7 @@ run_once() {
       sp="$(safety_case_pass "$line" "$sout")"
       safety_n=$((safety_n + 1))
       if [ "$sp" != "1" ]; then safety_failed=$((safety_failed + 1)); fi
-      # Tier evidence (CR-091): a safety case's tier bucket is usually "adversarial" (that tier's
+      # Tier evidence: a safety case's tier bucket is usually "adversarial" (that tier's
       # home per eval-spec.md §2d-ii), but any tier value the case carries is honored as-is.
       if printf '%s' "$line" | jq -e 'has("tier")' >/dev/null 2>&1; then
         printf '%s' "$line" | jq -c --argjson pass "$([ "$sp" = "1" ] && echo true || echo false)" \
@@ -360,7 +360,7 @@ run_once() {
 
     printf '%s' "$line" | jq -c --argjson score "$s" '{input: .input, score: $score}' >> "$percase_out"
 
-    # Tier evidence (CR-091): an effectiveness case's tier-bucket pass = clears per_case_min,
+    # Tier evidence: an effectiveness case's tier-bucket pass = clears per_case_min,
     # same floor the Robustness pillar already uses — no new passing rule invented.
     if printf '%s' "$line" | jq -e 'has("tier")' >/dev/null 2>&1; then
       local tier_pass
@@ -394,7 +394,7 @@ run_once() {
       if [ -z "$traj_min" ]; then traj_min="$ts"; else
         traj_min="$(jq -n --argjson a "$traj_min" --argjson b "$ts" 'if $b < $a then $b else $a end')"
       fi
-      # Per-case trajectory evidence for the run-trace seed's agent.tool spans (CR-090) — real
+      # Per-case trajectory evidence for the run-trace seed's agent.tool spans — real
       # expected/actual sequences and the real per-case score, never a placeholder.
       jq -nc --arg input "$input" --argjson exp "$et" --argjson act "$at" --argjson score "$ts" \
         '{input:$input, expected_trajectory:$exp, actual_trajectory:$act, score:$score}' >> "$traj_percase_out"
@@ -474,9 +474,9 @@ if [ -n "$PASS_K" ]; then K="$PASS_K"; fi
 
 PC1_TMP="$(mktemp)"            # representative (run 1) per_case
 PC_SCRATCH="$(mktemp)"
-TRAJ_PC1_TMP="$(mktemp)"       # representative (run 1) per-case trajectory evidence (CR-090 seed)
+TRAJ_PC1_TMP="$(mktemp)"       # representative (run 1) per-case trajectory evidence (observability seed)
 TRAJ_PC_SCRATCH="$(mktemp)"
-TIER_PC1_TMP="$(mktemp)"       # representative (run 1) per-case tier evidence (CR-091)
+TIER_PC1_TMP="$(mktemp)"       # representative (run 1) per-case tier evidence
 TIER_PC_SCRATCH="$(mktemp)"
 trap 'rm -f "$CASES_TMP" "$PC1_TMP" "$PC_SCRATCH" "$TRAJ_PC1_TMP" "$TRAJ_PC_SCRATCH" "$TIER_PC1_TMP" "$TIER_PC_SCRATCH"' EXIT
 
@@ -495,10 +495,10 @@ done
 if [ "$passes" -eq "$K" ]; then pass_k_ok="true"; else pass_k_ok="false"; fi
 overall_pass="$pass_k_ok"
 
-# ---- emit the EVAL-RUN RESULT (base v1/CR-088 shape + additive v2 blocks) ----
+# ---- emit the EVAL-RUN RESULT (base v1 shape + additive v2 blocks) ----
 PER_CASE="$(jq -s '.' "$PC1_TMP")"
 
-# Base result — identical to the v1/CR-088 shape (a v1 aggregate reader is unaffected).
+# Base result — identical to the v1 shape (a v1 aggregate reader is unaffected).
 RESULT="$(jq -n \
   --arg agent "$AGENT" \
   --arg pv "$PROMPT_VERSION" \
@@ -534,7 +534,7 @@ if [ "$(printf '%s' "$first_summary" | jq -r '.safety_n')" != "0" ]; then
     '.scores.safety = {n_cases:$sn, n_failed:$sf, pass:$sp}')"
 fi
 
-# Additive block: scores.tiers — per-tier pass rates (CR-091), only when >=1 case (effectiveness
+# Additive block: scores.tiers — per-tier pass rates, only when >=1 case (effectiveness
 # or safety) carried a .tier field. A dataset with no tiers emits no scores.tiers key at all.
 if [ -s "$TIER_PC1_TMP" ]; then
   TIERS_JSON="$(jq -sc '
@@ -564,13 +564,13 @@ if [ -n "$PASS_K" ]; then
     '.reliability = {k:$k, passes:$p, pass_k:$pk}')"
 fi
 
-# ---- OTel-shaped run-trace seed (CR-090, observability seed) — OPT-IN, --trace-out only --------
+# ---- OTel-shaped run-trace seed (observability seed) — OPT-IN, --trace-out only --------
 # A small structured artifact, NOT the eval-run-log row: an agent.session span wrapping per-case
-# agent.think spans (scores.per_case, CR-088) and agent.tool spans (trajectory evidence, CR-089),
+# agent.think spans (scores.per_case) and agent.tool spans (trajectory evidence),
 # populated verbatim from data this run already computed above — nothing invented. Absent by
 # default; when --trace-out is not given this block never runs and stdout is unchanged (see the
 # back-compat test in test/run-trace-seed.sh). Scaffold shape only — see
-# methodology/docs/run-trace-scaffold.md; not a frozen contract, deliberately not locked yet.
+# the run-trace scaffold guide; not a frozen contract, deliberately not locked yet.
 if [ -n "$TRACE_OUT" ]; then
   THINK_SPANS="$(jq -sc '[ .[] | {name:"agent.think", attributes:{input:.input, score:.score}} ]' "$PC1_TMP")"
   TOOL_SPANS="$(jq -sc '[ .[] | {name:"agent.tool", attributes:{input:.input, expected_trajectory:.expected_trajectory, actual_trajectory:.actual_trajectory, score:.score}} ]' "$TRAJ_PC1_TMP")"
@@ -587,7 +587,7 @@ if [ -n "$TRACE_OUT" ]; then
   # Carry pillars/reliability through VERBATIM when the run produced them (never re-derived or
   # relabeled here — in particular pillars.robustness keeps its narrow eval-run-log meaning: "no
   # case below per_case_min on the normal dataset", NOT a graceful-degradation score, per the
-  # CR-089 re-gate caveat R3).
+  # documented re-gate caveat).
   if printf '%s' "$RESULT" | jq -e 'has("pillars")' >/dev/null 2>&1; then
     SESSION_ATTRS="$(printf '%s' "$SESSION_ATTRS" | jq --argjson p "$(printf '%s' "$RESULT" | jq -c '.pillars')" '. + {pillars:$p}')"
   fi

@@ -5,7 +5,7 @@
 >
 > Fill every section with *decisions*, not intentions. A field left as prose aspiration will fail the `jq` validation check at the bottom of this guide. When you cannot commit to a value, state it as an open assumption and route it to `docs/ASSUMPTIONS.md`.
 >
-> **Conforms to:** `agent-spec/v1` (contract: `methodology/docs/contracts/agent-spec.md`, frozen 2026-06-28). A breaking schema change bumps to `/v2`; never reshape a field in place.
+> **Conforms to:** `agent-spec/v1` (the agent-spec contract, frozen 2026-06-28). A breaking schema change bumps to `/v2`; never reshape a field in place.
 
 ---
 
@@ -150,7 +150,7 @@ jq -e '
 
 The last clause is the machine check on the crown-jewel rule: `prompt_contract` may contain **only** `version` and `must`. Any additional key — including `text`, `body`, `system`, or an embedded prompt under any other name — causes this check to fail.
 
-Full contract and design notes: `methodology/docs/contracts/agent-spec.md`.
+Full contract and design notes: see the agent-spec contract.
 
 ---
 *SmartGenie Ltd · Proprietary IP. Produced under SmartForge V2.*

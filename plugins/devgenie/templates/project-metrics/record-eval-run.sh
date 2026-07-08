@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # record-eval-run.sh — append one eval-run-log row per eval run (score tied to prompt version).
 # Durable, append-only eval-run history (NOT the operational token-ledger): one line per eval
-# run — the Tier-2 analogue of record-gate.sh. Row shape is FROZEN by the contract
-# methodology/docs/contracts/eval-run-log.md §2:
+# run — the Tier-2 analogue of record-gate.sh. Row shape is FROZEN by the
+# eval-run-log contract §2:
 #   {schema, run_id, ts, agent, prompt_version, eval_spec:{id,version}, scores:{aggregate,n_cases}, pass}
-# eval-run-log/v2 (CR-088) adds an ADDITIVE scores.per_case[] array — stamped automatically when
+# eval-run-log/v2 adds an ADDITIVE scores.per_case[] array — stamped automatically when
 # the result carries it (see the schema-select below); v1 aggregate readers are unaffected.
 #
 # VERIFY-THE-ARTIFACT: agent / prompt_version / eval_spec / scores / pass are READ FROM the
-# result file the row derives from (produced by run-evals.sh, S8-01), never taken on the
+# result file the row derives from (produced by run-evals.sh), never taken on the
 # caller's word — so a ledger row can never disagree with the result it claims to record.
 # A missing or wrong-typed prompt_version is a hard fail (no silent row + exit 0).
-# Invoked by the agent-slice loop (S8-04) after each eval run.
+# Invoked by the agent-slice loop after each eval run.
 set -euo pipefail
 
 result_file=""
@@ -76,10 +76,10 @@ ts="$(date -u +%FT%TZ)"
 # Ledger file: <agent>.eval-run-log.jsonl (filename derived from the agent id, by contract §2).
 ledger="${agent}.eval-run-log.jsonl"
 
-# Schema select: eval-run-log/v2 when the result carries an additive per-case score array
-# (CR-088), else v1. The per_case field is ADDITIVE — a v1 aggregate reader ignores it — so
+# Schema select: eval-run-log/v2 when the result carries an additive per-case score array,
+# else v1. The per_case field is ADDITIVE — a v1 aggregate reader ignores it — so
 # writing v2 never breaks a v1 consumer, and an aggregate-only result still writes a v1 row.
-# For a v2 row the FULL scores object is carried through VERBATIM, so CR-089's additive
+# For a v2 row the FULL scores object is carried through VERBATIM, so the additive
 # scores.trajectory / scores.safety ride along untouched (never reshaping per_case or aggregate).
 if jq -e '(.scores.per_case|type)=="array"' "$result_file" >/dev/null 2>&1; then
   schema="eval-run-log/v2"
@@ -89,9 +89,9 @@ else
   scores_json="$(jq -c '.scores | {aggregate, n_cases}' "$result_file")"
 fi
 
-# CR-089 additive top-level run evidence: pillars (Four-Pillars verdicts) + reliability (pass^k).
+# Additive top-level run evidence: pillars (Four-Pillars verdicts) + reliability (pass^k).
 # Carried through only when the result carries them (a run that used no eval-spec/v2 dimension
-# writes exactly the CR-088 row). "{}" merges to nothing — additive, never a reshape.
+# writes exactly the v1 row). "{}" merges to nothing — additive, never a reshape.
 pillars_json="$(jq -c 'if has("pillars") then {pillars} else {} end' "$result_file")"
 reliability_json="$(jq -c 'if has("reliability") then {reliability} else {} end' "$result_file")"
 

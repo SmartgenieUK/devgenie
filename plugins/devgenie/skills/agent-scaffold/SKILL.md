@@ -14,7 +14,7 @@ allowed-tools: [Bash, Read, Write]
    ```
    bash "${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh" agent-scaffold
    ```
-   This refuses unless `.devgenie/agent-gate.json` shows `verdict: PASS` and `independent: true`. (This arm of `guard.sh` is added as part of the same S8-03 wave; it is always present when this skill is reachable.) If it exits non-zero, stop and surface the message — do not work around it. The refusal is the product working.
+   This refuses unless `.devgenie/agent-gate.json` shows `verdict: PASS` and `independent: true`. (This arm of `guard.sh` ships together with this skill; it is always present when this skill is reachable.) If it exits non-zero, stop and surface the message — do not work around it. The refusal is the product working.
 
 2. **Scaffold the eval harness and agent stubs.** Identify the `<agent>` id from `.devgenie/state.json` (or ask if ambiguous). Then:
 

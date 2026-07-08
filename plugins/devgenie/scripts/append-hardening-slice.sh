@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # append-hardening-slice.sh — general slice-appender: insert a slice block at a named anchor.
 # Serves Tier-1 Hardening (default) AND Tier-2 Eval-Hardening (via --anchor / --template).
-# Implements the FROZEN slice-template contract (methodology/docs/contracts/slice-template.md §4):
+# Implements the FROZEN slice-template contract §4:
 #   Anchor        — insert at a stable marker, never an arbitrary location.
 #   Idempotency   — a second run is a loud no-op, never a silent double-append.
 #   Non-destructive — only inserts at the anchor; never edits/reorders existing rows.
