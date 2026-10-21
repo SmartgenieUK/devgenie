@@ -2,9 +2,11 @@
   "mcpServers": {
     "devgenie-core": {
       "type": "http",
-      "url": "https://devgenie-core.bluehill-510b36b6.northeurope.azurecontainerapps.io/mcp",
-      "headers": {
-        "Authorization": "Bearer ${user_config.license_key}"
+      "url": "https://devgenie.smartgenie.co.uk/mcp",
+      "oauth": {
+        "clientId": "267d7aab-6fcc-437c-9632-e24c055f713f",
+        "callbackPort": 33418,
+        "scopes": "https://devgenie.smartgenie.co.uk/mcp/mcp.access"
       }
     }
   }

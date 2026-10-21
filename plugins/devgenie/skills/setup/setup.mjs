@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // client/skills/setup/setup.mjs — the /devgenie:setup preflight helper (CR-170).
 //
-// Pure environment mechanics; holds NO methodology and NO key. It never reads, stores, or transmits the
-// licence key and never makes a server call — the key is entered only through the plugin config UI and
+// Pure environment mechanics; holds NO methodology and NO credential. It never reads, stores, or transmits
+// a sign-in token and never makes a server call — sign-in happens only in Claude Code's own /mcp flow and
 // the connectivity probe is the SKILL.md's job (only the Claude Code host holds the MCP connection).
 //
 // Two halves:
@@ -40,7 +40,7 @@ export function decide(probe) {
       message: `Could not detect the Claude Code version. DevGenie needs >= v${MIN_CLAUDE_VERSION}. Check with \`claude --version\`.` };
   if (cmpVersion(claudeVersion, MIN_CLAUDE_VERSION) < 0)
     return { state: "version-too-old", ok: false,
-      message: `Claude Code ${claudeVersion} is too old — DevGenie needs >= v${MIN_CLAUDE_VERSION} (the version that passes your licence key to the server). Update Claude Code, then re-run /devgenie:setup.` };
+      message: `Claude Code ${claudeVersion} is too old — DevGenie needs >= v${MIN_CLAUDE_VERSION}. Update Claude Code, then re-run /devgenie:setup.` };
 
   // 2. Dependencies. A genuinely-absent dep must be installed; a present-but-stale one only needs a restart.
   const missing = DEPS.filter((d) => deps[d] === "missing");
@@ -53,10 +53,10 @@ export function decide(probe) {
     return { state: "needs-restart", ok: false, stale,
       message: `${stale.join(", ")} is installed but not visible to this session yet. Restart Claude Code, then re-run /devgenie:setup — do NOT reinstall.` };
 
-  // 3. Environment is ready. Key capture + the connectivity probe are the SKILL.md's steps; this helper
-  //    never handles the key.
+  // 3. Environment is ready. Sign-in + the connectivity probe are the SKILL.md's steps; this helper never
+  //    handles a credential.
   return { state: "ready", ok: true,
-    message: "Environment ready. Next: make sure your licence key is set (/plugin configure devgenie@smartgenie), then run any /devgenie:* command." };
+    message: "Environment ready. Next: make sure you are signed in (run /mcp, choose devgenie-core, authenticate), then run any /devgenie:* command." };
 }
 
 // ── real probes (CLI side; decide() stays pure and testable) ─────────────────────────────────────────

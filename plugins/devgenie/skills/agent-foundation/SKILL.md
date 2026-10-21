@@ -7,7 +7,7 @@ allowed-tools: [Bash, Read, Write, "mcp__devgenie-core__get_agent_foundation_pro
 
 You are running **/devgenie:agent-foundation** — the Tier-2 (AgentDev) foundation step. The methodology is delivered by the server — you fetch it and execute it; you never invent or substitute it.
 
-**Entitlement.** This is a Pro/Enterprise-only surface. If the server returns `UPGRADE_REQUIRED`, surface it plainly and stop — a Lite key cannot run Tier-2.
+**Entitlement.** This is a Pro/Enterprise-only surface. If the server returns `UPGRADE_REQUIRED`, surface it plainly and stop — Tier-2 needs an active Pro or Enterprise plan.
 
 1. **Precondition — Tier-1 intake must have passed.** Agent-foundation refuses to manufacture specs from inputs that haven't cleared the Tier-1 intake gate. Verify the **real marker**, never the `state.json` flag:
    ```
