@@ -80,9 +80,10 @@ case "$phase" in
     ok ;;
   agent-slice)
     # Ready to run the prompt->eval->revise loop: the Tier-2 Phase-0 scaffold must exist — an
-    # eval harness runner AND a versioned prompt (prompt v1.0).
+    # eval harness runner AND a versioned prompt (prompt v1.0). The server's scaffold_agent writes the
+    # runner at evals/run-evals.sh; evals/<agent>/run-evals.sh is the pre-0.3.0 layout.
     have_runner=""
-    for f in evals/*/run-evals.sh; do
+    for f in evals/run-evals.sh evals/*/run-evals.sh; do
       [ -s "$f" ] || continue
       have_runner="$f"; break
     done
@@ -91,7 +92,7 @@ case "$phase" in
       [ -s "$f" ] || continue
       have_prompt="$f"; break
     done
-    [ -n "$have_runner" ] || block "no eval harness (evals/<agent>/run-evals.sh) — run /devgenie:agent-scaffold first."
+    [ -n "$have_runner" ] || block "no eval harness (evals/run-evals.sh) — run /devgenie:agent-scaffold first."
     [ -n "$have_prompt" ] || block "no versioned prompt (prompts/<agent>.v*.md) — run /devgenie:agent-scaffold first."
     ok ;;
   *)
