@@ -23,7 +23,7 @@
 
 ---
 
-## Example Schema Object
+## Example Schema Object (shape only — every value is yours to set)
 
 ```json
 {
@@ -35,15 +35,15 @@
     "case_fields": ["input", "expected", "tags"]
   },
   "scoring": {
-    "metric": "exact_match",
+    "metric": "<metric>",
     "range": [0, 1],
-    "aggregate": "mean"
+    "aggregate": "<mean | pass_rate | min>"
   },
   "thresholds": {
-    "aggregate_min": 1.0,
-    "per_case_min": 1.0
+    "aggregate_min": "<number in range>",
+    "per_case_min": "<number in range>"
   },
-  "passing_means": "The sample-agent produces exact matching outputs for all valid inputs."
+  "passing_means": "<one line: what a pass asserts about the agent>"
 }
 ```
 

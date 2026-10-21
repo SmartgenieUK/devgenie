@@ -17,11 +17,8 @@ You are running **/devgenie:agent-foundation** — the Tier-2 (AgentDev) foundat
 
 2. **Fetch the agent-foundation prompt.** Call the `get_agent_foundation_prompt` tool (the bundled `devgenie-core` MCP server) with `{ project_name, stack_hint?, scope? }`. The server returns the Tier-2 capture/foundation instructions, entitlement-clamped. If it returns an error envelope (`UPGRADE_REQUIRED`, `RATE_LIMITED`, `CORE_UNREACHABLE`, …), surface it plainly and stop.
 
-3. **Execute exactly what the server returned** against `docs/inputs/` to draft `<agent>.eval-spec.json` and `<agent>.agent-spec.json` (where `<agent>` is the agent-id established by the brief). Challenge the brief; separate known / assumed / unknown for every claim.
-   - **Crown-jewel rule (non-negotiable):** `<agent>.agent-spec.json`'s `prompt_contract` may carry **only** `version` and `must` — **never** prompt text. Any other key under `prompt_contract` smuggles server-held IP; refuse to write it.
+3. **Execute exactly what the server returned** against `docs/inputs/` to draft `<agent>.eval-spec.json` and `<agent>.agent-spec.json` (where `<agent>` is the agent-id established by the brief).
 
-4. **Do NOT rate your own work.** Rating is a separate, fresh-session step (`/devgenie:agent-gate`) — independence is structural. Do not score, approve, or proceed to the agent scaffold here.
+4. **Advance state.** Set `.devgenie/state.json` `phase` to `agent_gate_pending`. Commit: `docs: agent foundation (eval+agent spec) for Tier-2 gate`.
 
-5. **Advance state.** Set `.devgenie/state.json` `phase` to `agent_gate_pending`. Commit: `docs: agent foundation (eval+agent spec) for Tier-2 gate`.
-
-6. **Hand off.** Tell the user to start a **fresh session** and run **/devgenie:agent-gate**. Do not proceed to `/devgenie:agent-scaffold` until that gate records an independent PASS.
+5. **Hand off.** Relay the served prompt's hand-off to **/devgenie:agent-gate**.

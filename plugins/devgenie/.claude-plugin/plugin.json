@@ -2,7 +2,7 @@
   "name": "devgenie",
   "displayName": "DevGenie",
   "version": "0.3.0",
-  "description": "DevGenie - governed, spec-first AI software delivery for Claude Code. Drives a project from brief to first slice through a gated bootstrap: foundation -> independent rating gate -> Phase 0 scaffold -> benchmarked slice builds, with an independent signed rating gate, premium templates, an audit-grade decision trail and AI-spend chargeback. AgentDev (Tier-2) adds a governed pipeline for building your own LLM-powered agents/prompts: agent-foundation -> independent agent-gate -> agent-scaffold -> agent-slice, rated and audited server-side. Sign in with your SmartGenie account in the browser; plans at https://devgenie.smartgenie.co.uk/portal. Requires Claude Code v2.1.154 or later and network access.",
+  "description": "DevGenie - Governed, spec-first AI software delivery for Claude Code: an independent server-side rating gate, per-task token metering, premium templates, an audit-grade decision trail and AI-spend chargeback. AgentDev (Tier-2) adds the same governance for building your own agents and prompts, rated and audited server-side. Sign in with your SmartGenie account in the browser; plans at https://devgenie.smartgenie.co.uk/portal. Requires Claude Code v2.1.154 or later and network access.",
   "author": {
     "name": "SmartGenie Ltd",
     "email": "sachin@smartgenie.co.uk",
