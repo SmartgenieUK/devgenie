@@ -13,7 +13,7 @@
       "source": "./plugins/devgenie",
       "displayName": "DevGenie",
       "description": "Governed, spec-first AI software delivery for Claude Code: an independent server-side rating gate, per-task token metering, premium templates, an audit-grade decision trail and AI-spend chargeback. AgentDev (Tier-2) adds the same governance for building your own agents and prompts, rated and audited server-side. Sign in with your SmartGenie account; plans at https://devgenie.smartgenie.co.uk/portal.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": {
         "name": "SmartGenie Ltd",
         "url": "https://smartgenie.co.uk"
