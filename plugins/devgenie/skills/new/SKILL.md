@@ -19,6 +19,6 @@ You are running **/devgenie:new** — bootstrap a new governed project. This ski
 
 3. **Keep the files it returns.** The response carries `files[]` beside the prompt: the fixed project files, each `{ path, content }`. Keep them; the prompt says when to write each one. Write each entry exactly as returned, with the Write tool, create-if-absent (a path that already exists is left untouched). Never retype a body the server sent.
 
-4. **Execute the returned prompt verbatim.** Become that prompt and follow its steps exactly, in order; do not add or skip steps. The returned prompt is the single source of truth for this flow.
+4. **Execute the returned prompt verbatim.** Become that prompt and follow its steps exactly, in order; do not add or skip steps. DevGenie's step-ledger script is `${CLAUDE_PLUGIN_ROOT}/scripts/step-ledger.sh`. When the prompt says to run the step-ledger script your DevGenie skill named, run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/step-ledger.sh" <step> <outcome>` with the step and outcome the prompt gives. The returned prompt is the single source of truth for this flow.
 
 The full flow — repo + governance files + a seeded `.claude/settings.json` + phase state, ending at **/devgenie:intake** — lives server-side and stays current without a plugin reinstall.
