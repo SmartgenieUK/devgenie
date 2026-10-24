@@ -17,6 +17,8 @@ You are running **/devgenie:new** — bootstrap a new governed project. This ski
    - do **not** pass `scope` (new is full-scope at every tier).
    If it returns a structured error envelope (`AUTH_INVALID`, `RATE_LIMITED`, `CORE_UNREACHABLE`, …), surface it plainly and stop — never hand-roll a scaffold.
 
-3. **Execute the returned prompt verbatim.** Become that prompt and follow its steps exactly, in order; do not add or skip steps. The returned prompt is the single source of truth for this flow.
+3. **Keep the files it returns.** The response carries `files[]` beside the prompt: the fixed project files, each `{ path, content }`. Keep them; the prompt says when to write each one. Write each entry exactly as returned, with the Write tool, create-if-absent (a path that already exists is left untouched). Never retype a body the server sent.
+
+4. **Execute the returned prompt verbatim.** Become that prompt and follow its steps exactly, in order; do not add or skip steps. The returned prompt is the single source of truth for this flow.
 
 The full flow — repo + governance files + a seeded `.claude/settings.json` + phase state, ending at **/devgenie:intake** — lives server-side and stays current without a plugin reinstall.
