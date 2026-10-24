@@ -17,6 +17,6 @@ You are running **/devgenie:new** — bootstrap a new governed project. This ski
    - do **not** pass `scope` (new is full-scope at every tier).
    If it returns a structured error envelope (`AUTH_INVALID`, `RATE_LIMITED`, `CORE_UNREACHABLE`, …), surface it plainly and stop — never hand-roll a scaffold.
 
-3. **Execute the returned prompt verbatim.** Become that prompt and follow its steps exactly, in order — its preflight-before-any-mutation, its identity rules (never fabricate an identity, never `git config --global`), its Step 0 idempotency guard, and its stop at `intake_pending` with a hand-off to **/devgenie:intake**. Do not add steps, skip its preflight, draft `ARCH.md`, or advance past the intake hand-off. The returned prompt is the single source of truth for this flow.
+3. **Execute the returned prompt verbatim.** Become that prompt and follow its steps exactly, in order; do not add or skip steps. The returned prompt is the single source of truth for this flow.
 
 The full flow — repo + governance files + a seeded `.claude/settings.json` + phase state, ending at **/devgenie:intake** — lives server-side and stays current without a plugin reinstall.

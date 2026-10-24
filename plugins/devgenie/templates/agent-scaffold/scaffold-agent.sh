@@ -257,14 +257,14 @@ else
 3. For each invariant, implement the prompt behaviour that satisfies it (in your server-held prompt file).
 4. Tick the checklist items when you have verified the prompt satisfies each invariant.
 5. Do NOT embed the actual prompt text in this file — it is server-held IP (crown-jewel invariant).
-6. When all items are satisfied, change Status above to ACTIVE and record the eval run-log reference.
+6. When all items are satisfied, change Status above to ACTIVE.
 
 ---
 
 ## Must-invariants checklist
 
 The following invariants are drawn directly from \`prompt_contract.must\` in the agent-spec.
-The prompt implementation MUST satisfy every one of these before the agent may be rated.
+The prompt implementation MUST satisfy every one of these.
 
 ${must_checklist}
 
@@ -328,9 +328,6 @@ to this version string: **${prompt_version}**
 Before marking this prompt ACTIVE:
 
 - [ ] Every must-invariant above has been implemented and verified in the real prompt.
-- [ ] Guardrails have been tested with adversarial inputs.
-- [ ] I/O shapes match the agent-spec io contract.
-- [ ] An independent eval run-log exists for this prompt version (see Eval linkage above).
 - [ ] The actual prompt text has NOT been placed in this file (crown-jewel).
 - [ ] The agent-spec ($(basename "$spec_file")) has NOT been modified.
 

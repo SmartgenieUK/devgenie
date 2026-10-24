@@ -13,7 +13,6 @@ You are running **/devgenie:foundation**. The methodology is delivered by the se
    ```
    If this prints `BLOCKED` (marker missing, or verdict not `PASS`), **stop** and tell the user to run **/devgenie:intake** first (rate the brief in `docs/inputs/`), then re-run `/devgenie:foundation`. Do not proceed.
 2. **Fetch the foundation prompt.** Call the `get_foundation_prompt` tool (the bundled `devgenie-core` MCP server) with `{ project_name, stack_hint?, scope? }`. The server returns the capture/foundation instructions, scope-clamped to your entitlement. If it returns an error envelope (`RATE_LIMITED`, `UPGRADE_REQUIRED`, `CORE_UNREACHABLE`, …), surface it plainly and stop.
-3. **Execute exactly what the server returned** to produce `ARCH.md` and `docs/ASSUMPTIONS.md` from the brief in `docs/inputs/`. Every non-obvious ("assumed") claim in `ARCH.md` must also appear in `docs/ASSUMPTIONS.md`.
-4. **Do NOT rate your own work.** Rating is a separate, fresh-session step (`/devgenie:gate`) — independence is structural.
-5. **Advance state.** Set `.devgenie/state.json` `phase` to `gate_pending`. Commit: `docs: foundation draft for rating gate`.
-6. **Hand off.** Tell the user to start a **fresh session** and run **/devgenie:gate**.
+3. **Execute exactly what the server returned** to produce `ARCH.md` and `docs/ASSUMPTIONS.md` from the brief in `docs/inputs/`.
+4. **Advance state.** Set `.devgenie/state.json` `phase` to `gate_pending`. Commit: `docs: foundation draft for rating gate`.
+5. **Hand off.** Relay the served prompt's hand-off to **/devgenie:gate**.

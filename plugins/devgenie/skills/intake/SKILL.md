@@ -13,6 +13,6 @@ You are running **/devgenie:intake** — the Tier-1 front door that rates whethe
 
 2. **Fetch the server-held intake prompt.** Call **`get_intake_prompt`** with `{ project_name }` (use the current project/repo name; the served flow does not consume it, but the tool requires the field). Do **not** pass `scope` (intake is full-scope at every tier). If it returns a structured error envelope (`AUTH_INVALID`, `RATE_LIMITED`, `CORE_UNREACHABLE`, …), surface it plainly and stop — never hand-roll a verdict.
 
-3. **Execute the returned prompt verbatim.** Become that prompt and follow its steps exactly, in order — its inline presence check, the five-input rubric, the frozen verdict mapping, the two artifact writes (`.devgenie/intake.json` + `docs/inputs/intake-report.json`), the gate-ledger row, the `intake_pending → foundation_pending`-on-PASS advance, and its routing (PASS → `/devgenie:foundation`; CONDITIONAL/FAIL → supply the thin/missing inputs / elicitation, **never manufacture** an input to pass). The returned prompt is the single source of truth.
+3. **Execute the returned prompt verbatim.** Become that prompt and follow its steps exactly, in order. The returned prompt is the single source of truth.
 
 Intake rates the **inputs**, not a document — it never writes `ARCH.md`. Foundation is **locked** until intake records PASS.

@@ -1,8 +1,8 @@
 {
   "name": "devgenie",
   "displayName": "DevGenie",
-  "version": "0.2.0",
-  "description": "DevGenie - governed, spec-first AI software delivery for Claude Code. Drives a project from brief to first slice through a gated bootstrap: foundation -> independent rating gate -> Phase 0 scaffold -> benchmarked slice builds. Lite is free and online (full feature capture + a real MVP build); Pro builds and gates the production scope from the same captured spec and unlocks the independent signed rating gate, premium templates, an audit-grade decision trail and AI-spend chargeback. Pro+ also unlocks AgentDev (Tier-2): a governed pipeline for building your own LLM-powered agents/prompts — agent-foundation -> independent agent-gate -> agent-scaffold -> an eval-harness-driven agent-slice build loop, with server-side rating and audit throughout. Requires Claude Code v2.1.154 or later (plugin header interpolation) and network access.",
+  "version": "0.3.0",
+  "description": "DevGenie - Governed, spec-first AI software delivery for Claude Code: an independent server-side rating gate, per-task token metering, premium templates, an audit-grade decision trail and AI-spend chargeback. AgentDev (Tier-2) adds the same governance for building your own agents and prompts, rated and audited server-side. Sign in with your SmartGenie account in the browser; plans at https://devgenie.smartgenie.co.uk/portal. Requires Claude Code v2.1.154 or later and network access.",
   "author": {
     "name": "SmartGenie Ltd",
     "email": "sachin@smartgenie.co.uk",
@@ -37,12 +37,6 @@
       "title": "Default stack",
       "description": "Optional. The default technology stack (e.g. 'node-ts', 'python'), used to seed scaffold defaults.",
       "sensitive": false
-    },
-    "license_key": {
-      "type": "string",
-      "title": "DevGenie license key",
-      "description": "Required for the preview — enter the DevGenie preview key you were issued. A Lite key gives full feature capture + a real MVP build (online). A Pro or Enterprise key also builds and gates the production scope from the same captured spec, and unlocks the independent signed rating gate, premium templates, audit trail and AI-spend chargeback. Request a key at https://smartgenie.co.uk/devgenie.",
-      "sensitive": true
     }
   }
 }
