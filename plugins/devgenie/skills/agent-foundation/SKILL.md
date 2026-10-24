@@ -17,7 +17,7 @@ You are running **/devgenie:agent-foundation** — the Tier-2 (AgentDev) foundat
 
 2. **Fetch the agent-foundation prompt.** Call the `get_agent_foundation_prompt` tool (the bundled `devgenie-core` MCP server) with `{ project_name, stack_hint?, scope? }`. The server returns the Tier-2 capture/foundation instructions, entitlement-clamped. If it returns an error envelope (`UPGRADE_REQUIRED`, `RATE_LIMITED`, `CORE_UNREACHABLE`, …), surface it plainly and stop.
 
-3. **Execute exactly what the server returned** against `docs/inputs/` to draft `<agent>.eval-spec.json` and `<agent>.agent-spec.json` (where `<agent>` is the agent-id established by the brief).
+3. **Execute exactly what the server returned** against `docs/inputs/` to draft `<agent>.eval-spec.json` and `<agent>.agent-spec.json` (where `<agent>` is the agent-id established by the brief). DevGenie's agent-spec validator is `${CLAUDE_PLUGIN_ROOT}/scripts/validate-agent-specs.sh`. When the prompt says to run the agent-spec validator your DevGenie skill named, run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/validate-agent-specs.sh" <agent>` with the agent id.
 
 4. **Advance state.** Set `.devgenie/state.json` `phase` to `agent_gate_pending`. Commit: `docs: agent foundation (eval+agent spec) for Tier-2 gate`.
 
