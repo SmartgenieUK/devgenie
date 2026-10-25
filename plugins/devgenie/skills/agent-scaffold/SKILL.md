@@ -10,4 +10,4 @@ You are running **/devgenie:agent-scaffold** — the Tier-2 (AgentDev) Phase-0 s
 **Entitlement.** This is a Pro/Enterprise-only surface. If the server returns `UPGRADE_REQUIRED`, surface it plainly and stop.
 
 1. **Fetch the agent-scaffold prompt.** Call `get_agent_scaffold_prompt` (the bundled `devgenie-core` MCP server) with `{ project_name, scope? }`. If it returns an error envelope, surface it plainly and stop.
-2. **Execute exactly what the server returned.** It drives the server tools (`scaffold_agent`, `get_template`) and tells you what to write and when to stop; write their output exactly as returned.
+2. **Execute exactly what the server returned.** It drives the server tools (`scaffold_agent`, `get_template`) and tells you what to write and when to stop; write their output exactly as returned. DevGenie's guard script is `${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh`. When the prompt says to run the guard script your DevGenie skill named, run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh" agent-scaffold`.
