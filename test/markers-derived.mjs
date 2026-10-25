@@ -20,7 +20,7 @@ const PLUGIN = join(REPO, "plugins", "devgenie");
 const GUARD = join(PLUGIN, "scripts", "guard.sh");
 const WRITER = join(PLUGIN, "scripts", "write-marker.sh");
 const read = (p) => readFileSync(p, "utf8").split("\r").join("");
-const VERSION = "0.3.5";
+const VERSION = "0.3.6";
 
 const missing = ["bash", "jq", "openssl", "base64"].filter((t) => spawnSync("bash", ["-c", `command -v ${t}`]).status !== 0);
 if (missing.length) {

@@ -18,7 +18,7 @@ const PLUGIN = join(REPO, "plugins", "devgenie");
 const STEP = join(PLUGIN, "scripts", "step-ledger.sh").replace(/\\/g, "/");
 const VALIDATE = join(PLUGIN, "scripts", "validate-agent-specs.sh").replace(/\\/g, "/");
 const read = (p) => readFileSync(p, "utf8").split("\r").join("");
-const VERSION = "0.3.5";
+const VERSION = "0.3.6";
 
 // The old prompt commands, verbatim (devgenie-core b92d9c31).
 const OLD_STEP_FOUNDATION = "mkdir -p .devgenie\ntask=\"$(grep -ioE 'ACTIVE TASK( POINTER)?:[[:space:]]*[^ ]+' CLAUDE.md 2>/dev/null | head -1 | sed -E 's/.*:[[:space:]]*//' || true)\"; task=\"${task:-unattributed}\"\nproj=\"$(basename \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\")\"\njq -nc --arg ts \"$(date -u +%FT%TZ)\" --arg project \"$proj\" --arg task \"$task\" \\\n  '{ts:$ts, step:\"foundation\", outcome:\"drafted\", project:$project, task:$task, tokens:null}' \\\n  >> .devgenie/step-ledger.jsonl\n";
@@ -230,6 +230,17 @@ for (const s of ["foundation", "new"]) {
 }
 check("skills/agent-foundation names ${CLAUDE_PLUGIN_ROOT}/scripts/validate-agent-specs.sh with <agent>",
   skill("agent-foundation").includes('bash "${CLAUDE_PLUGIN_ROOT}/scripts/validate-agent-specs.sh" <agent>'));
+// BUG-10 (0.3.6): the served agent-scaffold and agent-slice prompts run the guard and the eval-run-log script the
+// skill names, so each skill states the paths in its own text, where Claude Code substitutes ${CLAUDE_PLUGIN_ROOT}.
+check("scripts/guard.sh exists", existsSync(join(PLUGIN, "scripts", "guard.sh")));
+check("templates/project-metrics/record-eval-run.sh exists",
+  existsSync(join(PLUGIN, "templates", "project-metrics", "record-eval-run.sh")));
+check("skills/agent-scaffold names ${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh with agent-scaffold",
+  skill("agent-scaffold").includes('bash "${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh" agent-scaffold'));
+check("skills/agent-slice names ${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh with agent-slice",
+  skill("agent-slice").includes('bash "${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh" agent-slice'));
+check("skills/agent-slice names ${CLAUDE_PLUGIN_ROOT}/templates/project-metrics/record-eval-run.sh with --result verdict.json",
+  skill("agent-slice").includes('bash "${CLAUDE_PLUGIN_ROOT}/templates/project-metrics/record-eval-run.sh" --result verdict.json'));
 check("skills/intake keeps the two intake scripts", /the two intake scripts/.test(skill("intake")) && /Keep them/.test(skill("intake")));
 
 // [4] Versions.

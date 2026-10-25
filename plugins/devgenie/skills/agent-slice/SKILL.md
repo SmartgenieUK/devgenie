@@ -10,4 +10,4 @@ You are running **/devgenie:agent-slice** — one turn of the Tier-2 (AgentDev) 
 **Entitlement.** This is a Pro/Enterprise-only surface. If the server returns `UPGRADE_REQUIRED`, surface it plainly and stop.
 
 1. **Fetch the agent-slice prompt.** Call `get_agent_slice_prompt` (the bundled `devgenie-core` MCP server) with `{ project_name, scope? }`. If it returns an error envelope, surface it plainly and stop.
-2. **Execute exactly what the server returned**, including where it tells you to stop.
+2. **Execute exactly what the server returned**, including where it tells you to stop. DevGenie's guard script is `${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh` and its eval-run-log script is `${CLAUDE_PLUGIN_ROOT}/templates/project-metrics/record-eval-run.sh`. When the prompt says to run the guard script your DevGenie skill named, run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh" agent-slice`; when it says to run the eval-run-log script your DevGenie skill named, run `bash "${CLAUDE_PLUGIN_ROOT}/templates/project-metrics/record-eval-run.sh" --result verdict.json`.
