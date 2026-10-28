@@ -48,7 +48,56 @@ case "$phase" in
     command -v jq >/dev/null 2>&1 || block "jq is required to read the intake marker — install it (macOS: brew install jq · Windows: winget install jqlang.jq · Linux: apt-get install jq) and retry."
     [ -s .devgenie/intake.json ] || block "no intake result — run /devgenie:intake first (foundation refuses without a passed intake)."
     [ "$(jq -r '.gate // empty' .devgenie/intake.json 2>/dev/null || true)" = "intake" ] || block ".devgenie/intake.json is not an intake marker (missing gate==\"intake\") — re-run /devgenie:intake."
-    [ "$(jq -r '.verdict // empty' .devgenie/intake.json 2>/dev/null || true)" = "PASS" ] || block "intake verdict is not PASS — supply the missing inputs and re-run /devgenie:intake."
+    if [ "$(jq -r 'if has("receipt") then "receipt" else "none" end' .devgenie/intake.json 2>/dev/null || true)" = "receipt" ]; then
+      # CR-210 row 8: an intake result that carries DevGenie's signed receipt must verify against a key bundled
+      # with the plugin, over the exact bytes the server signs (canonicalIntakeReceipt); then PASS or CONDITIONAL
+      # unlocks. A result with no receipt (every intake run before the server signs them) takes the rule below,
+      # unchanged (owner ruling HITL-017: not retrospective).
+      dep_check openssl
+      dep_check base64
+      sig="$(jq -r '.receipt.signature // empty' .devgenie/intake.json)"
+      [ -n "$sig" ] || block "the intake result's receipt is not signed — re-run /devgenie:intake."
+      tmp="$(mktemp -d)"
+      trap 'rm -rf "$tmp"' EXIT
+      # The server's sort is JavaScript's (UTF-16 code units); jq's sort is by code point. u16 is the sort key that
+      # makes them agree: a code point above U+FFFF becomes its surrogate pair.
+      # js writes JSON.stringify's bytes: jq's own escaping is identical except that it escapes U+007F, which
+      # JSON.stringify writes raw, so each string is escaped by jq between its U+007F characters.
+      defs='def u16: [explode[] | if . > 65535 then ((. - 65536) / 1024 | floor) + 55296, ((. - 65536) % 1024) + 56320 else . end];
+        def cites: [.[] | [.file, .line]] | sort_by((.[0] | u16), .[1]);
+        def js: if type == "array" then "[" + (map(js) | join(",")) + "]"
+          elif type == "string" then "\"" + (split("\u007f") | map(tojson | .[1:-1]) | join("\u007f")) + "\""
+          else tojson end;'
+      # cardDigest: the card in question order, values, choices and citations sorted.
+      jq -j "$defs"' .card as $c | [("solution_type", "industry_vertical", "users", "data_handled", "regulations",
+          "existing_estate", "preferences", "delivery_shape", "ai_use") as $k | $c[$k] as $a |
+        if $a.status != "answered" then [$k, $a.status, []]
+        elif ($a.choices | type) == "array" then [$k, $a.status, ([$a.choices[] | [.force, .value, (.citations | cites)] | js] | sort_by(u16))]
+        else [$k, $a.status, [($a.values | sort_by(u16)), ($a.citations | cites)]] end] | js' \
+        .devgenie/intake.json > "$tmp/card.bin" 2>/dev/null || block "the intake result's card cannot be read — re-run /devgenie:intake."
+      card="$(openssl dgst -sha256 < "$tmp/card.bin")"; card="${card%$'\r'}"; card="${card##* }"
+      [[ "$card" =~ ^[0-9a-f]{64}$ ]] || block "could not hash the intake result's card with openssl."
+      # canonicalIntakeReceipt: a fixed-order JSON array, rebuilt from the marker alone.
+      jq -j --arg card "$card" "$defs"' ["devgenie-intake-receipt", 2, .rule_version, .bank_version, .verdict, .starting_type,
+          .depth, .facts.personal_data, .facts.regulated_data, .facts.governed_industry, .facts.volume_stated,
+          .facts.multi_customer, .facts.agent_track, .receipt.ratings_sha256, .receipt.card_sha256, $card,
+          .open_for_foundation, .next_gap.element, .next_gap.rating, .receipt.receipt_id, .receipt.decided_at] | js' \
+        .devgenie/intake.json > "$tmp/payload.bin" 2>/dev/null || block "the intake result cannot be read — re-run /devgenie:intake."
+      printf '%s' "$sig" | base64 -d > "$tmp/sig.bin" 2>/dev/null || block "the intake result's signature is malformed — re-run /devgenie:intake."
+      # The keys bundled with the plugin, as for the gate; never a key from the marker, the environment or the network.
+      have_key="" verified=""
+      for k in "$here/../keys/"*.pem; do
+        [ -f "$k" ] || continue
+        have_key=1
+        if openssl dgst -sha256 -verify "$k" -signature "$tmp/sig.bin" "$tmp/payload.bin" >/dev/null 2>&1; then verified=1; break; fi
+      done
+      [ -n "$have_key" ] || block "this plugin install has no gate key — reinstall the plugin."
+      [ -n "$verified" ] || block "the intake result's receipt does not verify — it was edited or not issued by DevGenie; re-run /devgenie:intake."
+      v="$(jq -r '.verdict' .devgenie/intake.json)"
+      [ "$v" = "PASS" ] || [ "$v" = "CONDITIONAL" ] || block "intake verdict is '$v' — supply what intake asks for and re-run /devgenie:intake."
+    else
+      [ "$(jq -r '.verdict // empty' .devgenie/intake.json 2>/dev/null || true)" = "PASS" ] || block "intake verdict is not PASS — supply the missing inputs and re-run /devgenie:intake."
+    fi
     [ -s ARCH.md ] || block "ARCH.md is missing or empty — run /devgenie:foundation first."
     [ -s docs/ASSUMPTIONS.md ] || block "docs/ASSUMPTIONS.md is missing or empty."
     ok ;;
