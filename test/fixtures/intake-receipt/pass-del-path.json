@@ -194,10 +194,10 @@
   "rule_version": "intake-rule/2",
   "bank_version": "intake-bank/2",
   "receipt": {
-    "receipt_id": "irc_ca2fdff22d8ab18d",
-    "decided_at": "2026-10-28T10:44:12.906Z",
+    "receipt_id": "irc_fd52eb15e9004c8f",
+    "decided_at": "2026-10-29T09:00:06.423Z",
     "ratings_sha256": "327890929297ed58631460624b2297fc08c35b08bf81c9162952afbfa42d1219",
     "card_sha256": "5cfa2bc8948f8c6f77dd5167e668e2da22fc5aecf78ea3e66e5925c602281ccb",
-    "signature": "MEYCIQCr/AHdYPj/iM8O/abjG6IqMT1hnD71cuTT0BYay3mGVAIhAIf6aXdzZ6scLmkAr2lVcIiMcJpBarA5wJHi5nL/yyyX"
+    "signature": "MEUCIQDleow4NVBINsRU0Qn/ybVlE9NMsDnbKbc+m74cMQHJtwIgSuilIeRnGdgJGwJRh55vdmNh8+vpgj8BjhIeWsAqx1k="
   }
 }

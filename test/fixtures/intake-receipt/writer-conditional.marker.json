@@ -1,0 +1,207 @@
+{
+  "verdict": "CONDITIONAL",
+  "starting_type": "new",
+  "depth": "production",
+  "facts": {
+    "personal_data": false,
+    "regulated_data": false,
+    "governed_industry": false,
+    "volume_stated": false,
+    "multi_customer": false,
+    "agent_track": false
+  },
+  "load_bearing": [
+    "job_to_be_done",
+    "definition_of_success",
+    "binding_constraints",
+    "internal_consistency",
+    "data",
+    "security"
+  ],
+  "gaps": [
+    {
+      "element": "hosting",
+      "rating": "PARTIAL",
+      "load_bearing": false,
+      "refused": false
+    }
+  ],
+  "ratings": {
+    "job_to_be_done": "PRESENT",
+    "definition_of_success": "PRESENT",
+    "binding_constraints": "PRESENT",
+    "internal_consistency": "PRESENT",
+    "data": "PRESENT",
+    "security": "PRESENT",
+    "reliability": "PRESENT",
+    "stakeholders": "PRESENT",
+    "identity": "PRESENT",
+    "observability": "PRESENT",
+    "integration": "PRESENT",
+    "hosting": "PARTIAL",
+    "cost": "PRESENT",
+    "operations": "PRESENT"
+  },
+  "card": {
+    "solution_type": {
+      "status": "answered",
+      "values": [
+        "web_app",
+        "api"
+      ],
+      "citations": [
+        {
+          "file": "docs/inputs/x.md",
+          "line": 3
+        },
+        {
+          "file": "docs/inputs/x😀.md",
+          "line": 2
+        },
+        {
+          "file": "docs/inputs/café naïve.md",
+          "line": 9
+        },
+        {
+          "file": "docs/inputs/日本語/要件.md",
+          "line": 1
+        },
+        {
+          "file": "docs/inputs/a\tb \"q\" \\s.md",
+          "line": 4
+        },
+        {
+          "file": "docs/inputs/brief.md",
+          "line": 12
+        },
+        {
+          "file": "docs/inputs/brief.md",
+          "line": 2
+        }
+      ]
+    },
+    "industry_vertical": {
+      "status": "answered",
+      "values": [
+        "fintech"
+      ],
+      "citations": [
+        {
+          "file": "docs/inputs/brief.md",
+          "line": 5
+        }
+      ]
+    },
+    "users": {
+      "status": "dont_know"
+    },
+    "data_handled": {
+      "status": "answered",
+      "values": [
+        "personal",
+        "financial"
+      ],
+      "citations": [
+        {
+          "file": "docs/inputs/données.md",
+          "line": 7
+        }
+      ]
+    },
+    "regulations": {
+      "status": "unanswered"
+    },
+    "existing_estate": {
+      "status": "answered",
+      "values": [
+        "none"
+      ],
+      "citations": [
+        {
+          "file": "docs/inputs/brief.md",
+          "line": 8
+        }
+      ]
+    },
+    "preferences": {
+      "status": "answered",
+      "choices": [
+        {
+          "force": "must",
+          "value": "azure",
+          "citations": [
+            {
+              "file": "docs/inputs/x😀.md",
+              "line": 1
+            }
+          ]
+        },
+        {
+          "force": "must",
+          "value": "azure",
+          "citations": [
+            {
+              "file": "docs/inputs/x.md",
+              "line": 1
+            }
+          ]
+        },
+        {
+          "force": "prefer",
+          "value": "postgres",
+          "citations": [
+            {
+              "file": "docs/inputs/b.md",
+              "line": 3
+            },
+            {
+              "file": "docs/inputs/a.md",
+              "line": 30
+            }
+          ]
+        },
+        {
+          "force": "must_not",
+          "value": "aws",
+          "citations": [
+            {
+              "file": "docs/inputs/brief.md",
+              "line": 20
+            }
+          ]
+        }
+      ]
+    },
+    "delivery_shape": {
+      "status": "answered",
+      "values": [
+        "saas"
+      ],
+      "citations": [
+        {
+          "file": "docs/inputs/brief.md",
+          "line": 9
+        }
+      ]
+    },
+    "ai_use": {
+      "status": "unanswered"
+    }
+  },
+  "open_for_foundation": [
+    "users",
+    "regulations",
+    "ai_use"
+  ],
+  "next_gap": null,
+  "rule_version": "intake-rule/2",
+  "bank_version": "intake-bank/2",
+  "receipt": {
+    "receipt_id": "irc_6a0b4ddc5567cd80",
+    "decided_at": "2026-10-29T09:00:06.422Z",
+    "ratings_sha256": "20de70f2fb5ad206dec8138c29c605a062519497bc9ed67f75e2c507e2a04669",
+    "card_sha256": "7d3b88921891850a44dd0af3cdfc3a3eb5c2bb0c5e79ba99c94c42b17a56a88d",
+    "signature": "MEUCIQDvhtunoK2mZoA8m/pFIvrJTMd+XdL4oXIBK3ApWIZlLwIgBWasQqHCyG4bdN4K/WAH7uRsGIqjsYHdOI2HhwVg5jI="
+  },
+  "gate": "intake"
+}

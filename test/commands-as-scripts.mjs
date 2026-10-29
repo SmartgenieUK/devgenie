@@ -18,7 +18,7 @@ const PLUGIN = join(REPO, "plugins", "devgenie");
 const STEP = join(PLUGIN, "scripts", "step-ledger.sh").replace(/\\/g, "/");
 const VALIDATE = join(PLUGIN, "scripts", "validate-agent-specs.sh").replace(/\\/g, "/");
 const read = (p) => readFileSync(p, "utf8").split("\r").join("");
-const VERSION = "0.3.6";
+const VERSION = "0.3.7";
 
 // The old prompt commands, verbatim (devgenie-core b92d9c31).
 const OLD_STEP_FOUNDATION = "mkdir -p .devgenie\ntask=\"$(grep -ioE 'ACTIVE TASK( POINTER)?:[[:space:]]*[^ ]+' CLAUDE.md 2>/dev/null | head -1 | sed -E 's/.*:[[:space:]]*//' || true)\"; task=\"${task:-unattributed}\"\nproj=\"$(basename \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\")\"\njq -nc --arg ts \"$(date -u +%FT%TZ)\" --arg project \"$proj\" --arg task \"$task\" \\\n  '{ts:$ts, step:\"foundation\", outcome:\"drafted\", project:$project, task:$task, tokens:null}' \\\n  >> .devgenie/step-ledger.jsonl\n";
@@ -242,6 +242,19 @@ check("skills/agent-slice names ${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh with agen
 check("skills/agent-slice names ${CLAUDE_PLUGIN_ROOT}/templates/project-metrics/record-eval-run.sh with --result verdict.json",
   skill("agent-slice").includes('bash "${CLAUDE_PLUGIN_ROOT}/templates/project-metrics/record-eval-run.sh" --result verdict.json'));
 check("skills/intake keeps the two intake scripts", /the two intake scripts/.test(skill("intake")) && /Keep them/.test(skill("intake")));
+// CR-210 (0.3.7): the intake skill matches the served v2 skill — the server tool s_intake decides; the served scripts
+// replace older copies; the presence gate runs first.
+{
+  const s = skill("intake");
+  const tools = /^allowed-tools:\s*\[(.*)\]\s*$/m.exec(s)?.[1] ?? "";
+  for (const t of ["mcp__devgenie-core__s_intake", "mcp__plugin_devgenie_devgenie-core__s_intake",
+    "mcp__devgenie-core__get_intake_prompt", "mcp__plugin_devgenie_devgenie-core__get_intake_prompt"]) {
+    check(`skills/intake allows ${t}`, tools.includes(`"${t}"`), tools);
+  }
+  check("skills/intake names the server tool s_intake as the decider", /`s_intake`[^\n]*decides/.test(s));
+  check("skills/intake replaces older script copies (not create-if-absent)", /replacing/.test(s) && !/create-if-absent/.test(s));
+  check("skills/intake runs the presence gate", s.includes('bash "${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh" intake'));
+}
 
 // [4] Versions.
 console.log("\n[4] versions");

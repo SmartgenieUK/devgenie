@@ -20,7 +20,7 @@ const PLUGIN = join(REPO, "plugins", "devgenie");
 const GUARD = join(PLUGIN, "scripts", "guard.sh");
 const WRITER = join(PLUGIN, "scripts", "write-marker.sh");
 const read = (p) => readFileSync(p, "utf8").split("\r").join("");
-const VERSION = "0.3.6";
+const VERSION = "0.3.7";
 
 const missing = ["bash", "jq", "openssl", "base64"].filter((t) => spawnSync("bash", ["-c", `command -v ${t}`]).status !== 0);
 if (missing.length) {
@@ -117,6 +117,10 @@ mkdirSync(join(root, "scripts"), { recursive: true });
 mkdirSync(join(root, "keys"), { recursive: true });
 copyFileSync(GUARD, join(root, "scripts", "guard.sh"));
 writeFileSync(join(root, "keys", "k0.pem"), key.publicKey.export({ type: "spki", format: "pem" }));
+// CR-210 row 8: scaffold verifies the intake receipt first, so the project holds the served writer's PASS marker
+// (test/fixtures/intake-receipt) and the plugin root its public key.
+const INTAKE_FIX = join(REPO, "test", "fixtures", "intake-receipt");
+copyFileSync(join(INTAKE_FIX, "fixture-key.pem"), join(root, "keys", "k1.pem"));
 const PROJECT = "demo";
 const fields = {
   verdict: "PASS", independent: true, scope: "mvp", grade: "B", receipt_id: "rcpt_0123456789abcdef",
@@ -135,6 +139,7 @@ check("the gate marker has exactly the eleven keys",
   JSON.stringify(Object.keys(parsed).sort()) === JSON.stringify([...Object.keys(fields), "project", "signature", "date"].sort()), Object.keys(parsed).join(","));
 check("the gate marker copies the response's fields, the given project and the rated date",
   Object.keys(fields).every((k) => parsed[k] === fields[k]) && parsed.signature === response.signature && parsed.project === PROJECT && parsed.date === "2026-10-24");
+copyFileSync(join(INTAKE_FIX, "writer-pass.marker.json"), join(w.proj, ".devgenie", "intake.json"));
 let g = guardIn(w.proj, "scaffold", root);
 check("the unchanged guard unlocks the written gate marker", g.code === 0 && /UNLOCK mvp/.test(g.out), g.out);
 const refusals = [

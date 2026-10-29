@@ -1,11 +1,14 @@
-// test/guard-scaffold.mjs — BUG-09: the public scaffold guard verifies DevGenie's gate signature.
+// test/guard-scaffold.mjs — BUG-09: the public scaffold guard verifies DevGenie's gate signature; CR-210 row 8: it
+// also verifies the signed intake receipt, first.
 //
 // Runs the packaged entrypoint, `bash scripts/guard.sh scaffold [scope]`, from a temporary project holding
-// .devgenie/gate.json. Markers are signed here exactly as the server signs them (canonicalGate: a fixed-order
-// JSON array, nine elements with arch_sha256, eight on a pre-v1.9 marker; ES256 DER signature, base64) with
-// throwaway P-256 key pairs. The guard is copied into a temporary plugin root whose keys/ holds the throwaway
-// public key; two cases run the real plugins/devgenie/scripts/guard.sh against the real bundled key.
-// No network, no node_modules, no real private key. Needs bash, jq, openssl and base64 on PATH.
+// .devgenie/gate.json and .devgenie/intake.json. Gate markers are signed here exactly as the server signs them
+// (canonicalGate: a fixed-order JSON array, nine elements with arch_sha256, eight on a pre-v1.9 marker; ES256 DER
+// signature, base64) with throwaway P-256 key pairs. Intake markers are the fixtures in test/fixtures/intake-receipt/
+// (signed by DevGenie's own s_intake with a throwaway key; devgenie-core scripts/cr-210-intake-receipt-fixtures.mjs);
+// unless a case says otherwise a project holds the served writer's PASS marker. The guard is copied into a temporary
+// plugin root whose keys/ holds the throwaway public keys; two cases run the real plugins/devgenie/scripts/guard.sh
+// against the real bundled key. No network, no node_modules, no real private key. Needs bash, jq, openssl and base64.
 //   node test/guard-scaffold.mjs
 import { spawnSync } from "node:child_process";
 import { generateKeyPairSync, sign } from "node:crypto";
@@ -58,22 +61,33 @@ function marker(scope, { legacy = false } = {}) {
   return m;
 }
 
-// A temporary plugin root: scripts/guard.sh copied from the package, keys/ holding the given public keys.
+// The intake fixtures (CR-210 row 8): signed s_intake decisions and served-writer markers, and their public key.
+const FIX = join(REPO, "test", "fixtures", "intake-receipt");
+const FIXTURE_KEY = readFileSync(join(FIX, "fixture-key.pem"), "utf8");
+const fx = (name) => ({ ...JSON.parse(readFileSync(join(FIX, `${name}.json`), "utf8")), gate: "intake" });
+const writer = (name) => readFileSync(join(FIX, `writer-${name}.marker.json`), "utf8");
+const GOOD_INTAKE = writer("pass");
+
+// A temporary plugin root: scripts/guard.sh copied from the package, keys/ holding the given public keys (KeyObjects
+// or PEM text). Every root also holds the intake fixture key unless asked not to.
 let n = 0;
-function pluginRoot(keys) {
+function pluginRoot(keys, { intakeKey = true } = {}) {
   const root = join(work, `plugin${n++}`);
   mkdirSync(join(root, "scripts"), { recursive: true });
   mkdirSync(join(root, "keys"), { recursive: true });
   copyFileSync(GUARD, join(root, "scripts", "guard.sh"));
-  keys.forEach((k, i) => writeFileSync(join(root, "keys", `k${i}.pem`), pem(k)));
+  keys.forEach((k, i) => writeFileSync(join(root, "keys", `k${i}.pem`), typeof k === "string" ? k : pem(k)));
+  if (intakeKey && keys.length) writeFileSync(join(root, "keys", "intake-fixture.pem"), FIXTURE_KEY);
   return root;
 }
 const root = pluginRoot([main.publicKey]);
 
-function guard(m, { args = [], guardPath = join(root, "scripts", "guard.sh") } = {}) {
+// m: the gate marker (null for none); intake: the intake marker, an object or text written verbatim, or null for none.
+function guard(m, { args = [], guardPath = join(root, "scripts", "guard.sh"), intake = GOOD_INTAKE } = {}) {
   const proj = join(work, `proj${n++}`);
   mkdirSync(join(proj, ".devgenie"), { recursive: true });
-  writeFileSync(join(proj, ".devgenie", "gate.json"), JSON.stringify(m, null, 2));
+  if (m !== null) writeFileSync(join(proj, ".devgenie", "gate.json"), JSON.stringify(m, null, 2));
+  if (intake !== null) writeFileSync(join(proj, ".devgenie", "intake.json"), typeof intake === "string" ? intake : JSON.stringify(intake, null, 2));
   const r = spawnSync("bash", [guardPath.replace(/\\/g, "/"), "scaffold", ...args], { cwd: proj, encoding: "utf8" });
   return { code: r.status, out: (r.stdout || "").trim(), err: (r.stderr || "").trim() };
 }
@@ -132,10 +146,42 @@ check("an unrelated key beside the right one still unlocks (grace set)", unlocks
 console.log("\n[BUG-09] the shipped guard and key\n");
 check("the bundled key is the pinned live gate public key",
   existsSync(KEY) && readFileSync(KEY, "utf8").replace(/\r\n/g, "\n").trim() === PINNED);
+// The shipped guard trusts only the real key, so a fixture-signed intake result blocks before the gate is read.
 r = guard(marker("mvp"), { guardPath: GUARD });
-check("shipped guard: unsigned PASS blocks", blocks(r, "the gate result is not signed"), show(r));
+check("shipped guard: a fixture-signed intake blocks before the unsigned gate is read",
+  blocks(r, "intake result's receipt does not verify") && !r.err.includes("gate result"), show(r));
 r = guard(signed(marker("mvp")), { guardPath: GUARD });
-check("shipped guard and key: a throwaway-signed PASS does not verify", blocks(r, "does not verify"), show(r));
+check("shipped guard and key: a fixture-signed intake blocks before the throwaway-signed gate is read",
+  blocks(r, "intake result's receipt does not verify"), show(r));
+
+console.log("\n[CR-210] I: scaffold verifies the signed intake receipt first\n");
+const rerun = (r, text) => blocks(r, text) && r.err.includes("/devgenie:intake");
+const GOOD_GATE = signed(marker("mvp"));
+r = guard(GOOD_GATE, { intake: fx("pass") });
+check("signed intake PASS and a good gate unlock", unlocks(r, "mvp"), show(r));
+r = guard(GOOD_GATE, { intake: fx("conditional") });
+check("signed intake CONDITIONAL and a good gate unlock", unlocks(r, "mvp"), show(r));
+r = guard(GOOD_GATE, { intake: writer("conditional") });
+check("served-writer CONDITIONAL marker and a good gate unlock", unlocks(r, "mvp"), show(r));
+const badIntake = [
+  ["signed HOLD", fx("hold"), "intake verdict is 'HOLD'"],
+  ["signed FAIL", fx("fail"), "intake verdict is 'FAIL'"],
+  ["an old PASS with no receipt", { gate: "intake", verdict: "PASS" }, "has no signed receipt"],
+  ["a signed PASS with the receipt deleted", (() => { const m = fx("pass"); delete m.receipt; return m; })(), "has no signed receipt"],
+  ["HOLD edited to PASS", { ...fx("hold"), verdict: "PASS" }, "receipt does not verify"],
+  ["a receipt signed by another key", fx("pass-other-key"), "receipt does not verify"],
+  ["no intake result", null, "no intake result"],
+];
+for (const [label, intake, text] of badIntake) {
+  r = guard(GOOD_GATE, { intake });
+  check(`${label} blocks scaffold even with a good gate`, rerun(r, text), show(r));
+}
+r = guard(marker("mvp"), { intake: fx("pass") });
+check("a good intake receipt, then an unsigned gate, blocks on the gate", blocks(r, "the gate result is not signed"), show(r));
+r = guard({ ...GOOD_GATE, grade: "A" }, { intake: fx("pass") });
+check("a good intake receipt, then a tampered gate, blocks on the gate", blocks(r, "gate result's signature does not verify"), show(r));
+r = guard(null, { intake: fx("pass") });
+check("a good intake receipt and no gate result blocks on the gate", blocks(r, "no rating verdict"), show(r));
 
 try { rmSync(work, { recursive: true, force: true }); } catch { /* best-effort scratch cleanup */ }
 console.log(failures ? `\nGUARD-SCAFFOLD: FAIL (${failures} failed, ${passed} passed)` : `\nGUARD-SCAFFOLD: OK (${passed} passed)`);

@@ -1,12 +1,14 @@
-// test/guard-foundation.mjs — CR-210 row 8 (check half): the public foundation guard verifies intake's signed receipt.
+// test/guard-foundation.mjs — CR-210 row 8: the public guard accepts only a signed intake result before foundation.
 //
-// Runs the packaged entrypoint, `bash scripts/guard.sh foundation`, from a temporary project holding
-// .devgenie/intake.json, ARCH.md and docs/ASSUMPTIONS.md. The fixtures in test/fixtures/intake-receipt/ are decisions
-// produced and signed by DevGenie's own S_intake (devgenie-core scripts/cr-210-intake-receipt-fixtures.mjs) with a
+// Runs the packaged entrypoint, `bash scripts/guard.sh foundation` and `bash scripts/guard.sh intake-receipt`, from a
+// temporary project holding .devgenie/intake.json (and, for foundation, ARCH.md and docs/ASSUMPTIONS.md). The fixtures
+// in test/fixtures/intake-receipt/ are decisions produced and signed by DevGenie's own s_intake, plus two markers the
+// served writer wrote from saved decisions (devgenie-core scripts/cr-210-intake-receipt-fixtures.mjs), with a
 // throwaway P-256 key; fixture-key.pem is its public half. A marker is the decision plus gate: "intake". The guard is
 // copied into a temporary plugin root whose keys/ holds the fixture key; one case runs the real shipped guard against
-// the real bundled key. A marker with no receipt (every intake before the server signs them) must behave exactly as
-// before (owner ruling HITL-017). No network, no node_modules, no private key. Needs bash, jq, openssl and base64.
+// the real bundled key. A marker without a verifying receipt blocks (owner ruling HITL-017 as superseded: the old
+// intake is discontinued). The foundation skill's step 1 runs the intake-receipt phase before drafting.
+// No network, no node_modules, no private key. Needs bash, jq, openssl and base64.
 //   node test/guard-foundation.mjs
 import { spawnSync } from "node:child_process";
 import { generateKeyPairSync } from "node:crypto";
@@ -18,6 +20,7 @@ import { fileURLToPath } from "node:url";
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
 const GUARD = join(REPO, "plugins", "devgenie", "scripts", "guard.sh");
 const FIX = join(REPO, "test", "fixtures", "intake-receipt");
+const SKILL = join(REPO, "plugins", "devgenie", "skills", "foundation", "SKILL.md");
 
 const missing = ["bash", "jq", "openssl", "base64"].filter((t) => spawnSync("bash", ["-c", `command -v ${t}`]).status !== 0);
 if (missing.length) {
@@ -35,6 +38,7 @@ function check(name, cond, detail = "") {
 const work = mkdtempSync(join(tmpdir(), "cr210-"));
 const raw = (name) => readFileSync(join(FIX, `${name}.json`), "utf8");
 const fx = (name) => ({ ...JSON.parse(raw(name)), gate: "intake" });
+const writer = (name) => readFileSync(join(FIX, `writer-${name}.marker.json`), "utf8");
 
 let n = 0;
 function pluginRoot(keyPems) {
@@ -48,22 +52,28 @@ function pluginRoot(keyPems) {
 const FIXTURE_KEY = readFileSync(join(FIX, "fixture-key.pem"), "utf8");
 const root = pluginRoot([FIXTURE_KEY]);
 
-// m: a marker object, or a string written verbatim.
-function guard(m, { guardPath = join(root, "scripts", "guard.sh"), arch = true, assumptions = true } = {}) {
+function project(m, { arch = true, assumptions = true } = {}) {
   const proj = join(work, `proj${n++}`);
   mkdirSync(join(proj, ".devgenie"), { recursive: true });
   mkdirSync(join(proj, "docs"), { recursive: true });
   if (arch) writeFileSync(join(proj, "ARCH.md"), "# ARCH\n");
   if (assumptions) writeFileSync(join(proj, "docs", "ASSUMPTIONS.md"), "# Assumptions\n");
-  writeFileSync(join(proj, ".devgenie", "intake.json"), typeof m === "string" ? m : JSON.stringify(m, null, 2));
-  const r = spawnSync("bash", [guardPath.replace(/\\/g, "/"), "foundation"], { cwd: proj, encoding: "utf8" });
+  if (m !== null) writeFileSync(join(proj, ".devgenie", "intake.json"), typeof m === "string" ? m : JSON.stringify(m, null, 2));
+  return proj;
+}
+// m: a marker object, a string written verbatim, or null for no marker.
+function guard(m, { guardPath = join(root, "scripts", "guard.sh"), phase = "foundation", ...opts } = {}) {
+  const r = spawnSync("bash", [guardPath.replace(/\\/g, "/"), phase], { cwd: project(m, opts), encoding: "utf8" });
   return { code: r.status, out: (r.stdout || "").trim(), err: (r.stderr || "").trim() };
 }
-const unlocks = (r) => r.code === 0 && r.out === "GATE OK: foundation";
+const unlocks = (r, phase = "foundation") => r.code === 0 && r.out === `GATE OK: ${phase}`;
 const blocks = (r, text) => r.code === 1 && r.err.includes(text);
+// A block about the intake result names the re-run.
+const rerun = (r, text) => blocks(r, text) && r.err.includes("/devgenie:intake");
 const show = (r) => `exit ${r.code}: ${r.out} | ${r.err}`;
 const edit = (name, f) => { const m = fx(name); f(m); return m; };
 const NOT_VERIFY = "receipt does not verify";
+const NO_RECEIPT = "has no signed receipt";
 let r;
 
 console.log("\n[CR-210] U: signed PASS and CONDITIONAL unlock\n");
@@ -77,11 +87,17 @@ check("signed PASS unlocks", unlocks(r), show(r));
 r = guard(fx("conditional"));
 check("signed CONDITIONAL unlocks", unlocks(r), show(r));
 
+console.log("\n[CR-210] W: markers the served writer wrote from saved s_intake results unlock\n");
+r = guard(writer("pass"));
+check("served-writer PASS marker unlocks", unlocks(r), show(r));
+r = guard(writer("conditional"));
+check("served-writer CONDITIONAL marker unlocks", unlocks(r), show(r));
+
 console.log("\n[CR-210] V: signed HOLD and FAIL block\n");
 r = guard(fx("hold"));
-check("signed HOLD blocks", blocks(r, "intake verdict is 'HOLD'"), show(r));
+check("signed HOLD blocks", rerun(r, "intake verdict is 'HOLD'"), show(r));
 r = guard(fx("fail"));
-check("signed FAIL blocks", blocks(r, "intake verdict is 'FAIL'"), show(r));
+check("signed FAIL blocks", rerun(r, "intake verdict is 'FAIL'"), show(r));
 
 console.log("\n[CR-210] T: an edited receipt blocks\n");
 const tamper = [
@@ -104,16 +120,16 @@ const tamper = [
 ];
 for (const [what, base, f] of tamper) {
   r = guard(edit(base, f));
-  check(`edited: ${what} blocks`, blocks(r, NOT_VERIFY), show(r));
+  check(`edited: ${what} blocks`, rerun(r, NOT_VERIFY), show(r));
 }
 
 console.log("\n[CR-210] S: the signature\n");
 r = guard(edit("pass", (m) => { delete m.receipt.signature; }));
-check("receipt without a signature blocks", blocks(r, "receipt is not signed"), show(r));
+check("receipt without a signature blocks", rerun(r, NO_RECEIPT), show(r));
 r = guard(edit("pass", (m) => { m.receipt.signature = "!!!not-base64!!!"; }));
-check("malformed signature blocks", blocks(r, "signature is malformed") || blocks(r, NOT_VERIFY), show(r));
+check("malformed signature blocks", rerun(r, "signature is malformed") || rerun(r, NOT_VERIFY), show(r));
 r = guard(fx("pass-other-key"));
-check("a receipt signed by another key blocks", blocks(r, NOT_VERIFY), show(r));
+check("a receipt signed by another key blocks", rerun(r, NOT_VERIFY), show(r));
 
 console.log("\n[CR-210] K: the key set\n");
 r = guard(fx("pass"), { guardPath: join(pluginRoot([]), "scripts", "guard.sh") });
@@ -124,25 +140,25 @@ check("empty keys/ blocks", blocks(r, "has no gate key"), show(r));
   check("an unrelated key beside the right one still unlocks", unlocks(r), show(r));
 }
 r = guard(fx("pass"), { guardPath: GUARD });
-check("shipped guard and key: a fixture-signed PASS does not verify", blocks(r, NOT_VERIFY), show(r));
+check("shipped guard and key: a fixture-signed PASS does not verify", rerun(r, NOT_VERIFY), show(r));
 
-console.log("\n[CR-210] O: a marker with no receipt behaves exactly as before (HITL-017)\n");
-r = guard({ gate: "intake", verdict: "PASS" });
-check("old PASS unlocks", unlocks(r), show(r));
-for (const v of ["CONDITIONAL", "HOLD", "FAIL"]) {
+console.log("\n[CR-210] O: a result without a signed receipt blocks (HITL-017 as superseded)\n");
+for (const v of ["PASS", "CONDITIONAL", "HOLD", "FAIL"]) {
   r = guard({ gate: "intake", verdict: v });
-  check(`old ${v} blocks as today`, blocks(r, "intake verdict is not PASS"), show(r));
+  check(`old ${v} with no receipt blocks`, rerun(r, NO_RECEIPT), show(r));
 }
 r = guard({ gate: "intake" });
-check("old marker with no verdict blocks as today", blocks(r, "intake verdict is not PASS"), show(r));
+check("old marker with no verdict blocks", rerun(r, NO_RECEIPT), show(r));
 r = guard(edit("pass", (m) => { delete m.receipt; }));
-check("new PASS with the receipt deleted takes the old path and unlocks (accepted trade-off)", unlocks(r), show(r));
+check("signed PASS with the receipt deleted blocks", rerun(r, NO_RECEIPT), show(r));
 r = guard(edit("conditional", (m) => { delete m.receipt; }));
-check("new CONDITIONAL with the receipt deleted blocks as today", blocks(r, "intake verdict is not PASS"), show(r));
-r = guard({ gate: "intake", verdict: "PASS", receipt: null });
-check("receipt: null is a receipt and blocks", blocks(r, "receipt is not signed"), show(r));
-r = guard({ gate: "intake", verdict: "PASS", receipt: {} });
-check("receipt: {} blocks", blocks(r, "receipt is not signed"), show(r));
+check("signed CONDITIONAL with the receipt deleted blocks", rerun(r, NO_RECEIPT), show(r));
+for (const [label, receipt] of [["null", null], ["{}", {}], ['"x"', "x"]]) {
+  r = guard({ gate: "intake", verdict: "PASS", receipt });
+  check(`receipt: ${label} blocks`, rerun(r, NO_RECEIPT), show(r));
+}
+r = guard(null);
+check("no intake result blocks", rerun(r, "no intake result"), show(r));
 
 console.log("\n[CR-210] E: the existing checks still run\n");
 r = guard(fx("pass"), { arch: false });
@@ -150,18 +166,54 @@ check("signed PASS without ARCH.md blocks", blocks(r, "ARCH.md is missing"), sho
 r = guard(fx("pass"), { assumptions: false });
 check("signed PASS without docs/ASSUMPTIONS.md blocks", blocks(r, "ASSUMPTIONS.md is missing"), show(r));
 r = guard(edit("pass", (m) => { delete m.gate; }));
-check("a decision without gate: intake blocks", blocks(r, "is not an intake marker"), show(r));
+check("a decision without gate: intake blocks", rerun(r, "is not an intake marker"), show(r));
 
 console.log("\n[CR-210] D: escaping\n");
 check("the U+007F fixture holds a raw U+007F in a citation path", raw("pass-del-path").includes("\u007f"));
 r = guard(fx("pass-del-path"));
 check("a citation path holding U+007F verifies and unlocks", unlocks(r), show(r));
 {
-  // Written verbatim (the generator's bytes plus the gate field), never re-serialised here.
+  // Written verbatim (the generator's bytes plus the gate field), never re-serialised here. s_intake refuses such a
+  // path, so this is a forged marker; the guard must fail closed.
   const text = raw("pass-lone-surrogate-path").replace(/^\{/, '{\n  "gate": "intake",');
   check("the lone-surrogate fixture holds the escape \\ud800", text.includes("\\ud800"));
   r = guard(text);
-  check("a lone-surrogate citation path blocks (jq cannot parse it; fail closed)", blocks(r, "is not an intake marker"), show(r));
+  check("a lone-surrogate citation path blocks (jq cannot parse it; fail closed)", rerun(r, "is not an intake marker"), show(r));
+}
+
+console.log("\n[CR-210] P: the intake-receipt phase (the check before drafting; no ARCH.md needed)\n");
+const pre = (m) => guard(m, { phase: "intake-receipt", arch: false, assumptions: false });
+r = pre(fx("conditional"));
+check("intake-receipt: signed CONDITIONAL, no ARCH.md, passes", unlocks(r, "intake-receipt"), show(r));
+r = pre(writer("pass"));
+check("intake-receipt: served-writer PASS passes", unlocks(r, "intake-receipt"), show(r));
+r = pre(fx("hold"));
+check("intake-receipt: signed HOLD blocks", rerun(r, "intake verdict is 'HOLD'"), show(r));
+r = pre({ gate: "intake", verdict: "PASS" });
+check("intake-receipt: an old PASS with no receipt blocks", rerun(r, NO_RECEIPT), show(r));
+r = pre(edit("hold", (m) => { m.verdict = "PASS"; }));
+check("intake-receipt: an edited marker blocks", rerun(r, NOT_VERIFY), show(r));
+r = pre(null);
+check("intake-receipt: no intake result blocks", rerun(r, "no intake result"), show(r));
+
+console.log("\n[CR-210] F: the foundation skill's step 1 runs the intake-receipt phase\n");
+{
+  const skill = readFileSync(SKILL, "utf8").replace(/\r\n/g, "\n");
+  const CMD = 'bash "${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh" intake-receipt';
+  const step1 = skill.split(/\n2\. /)[0];
+  check("step 1 runs the intake-receipt phase", step1.includes(CMD));
+  check("no skill-side verdict check is left", !skill.includes('.verdict=="PASS"') && !/jq -e '[^']*verdict/.test(skill));
+  const runStep1 = (m) => {
+    const res = spawnSync("bash", ["-c", CMD], {
+      cwd: project(m, { arch: false, assumptions: false }), encoding: "utf8",
+      env: { ...process.env, CLAUDE_PLUGIN_ROOT: root.replace(/\\/g, "/") },
+    });
+    return { code: res.status, out: (res.stdout || "").trim(), err: (res.stderr || "").trim() };
+  };
+  r = runStep1(fx("conditional"));
+  check("step 1 lets a signed CONDITIONAL reach drafting", unlocks(r, "intake-receipt"), show(r));
+  r = runStep1({ gate: "intake", verdict: "PASS" });
+  check("step 1 stops an unsigned PASS before drafting", rerun(r, NO_RECEIPT), show(r));
 }
 
 try { rmSync(work, { recursive: true, force: true }); } catch { /* best-effort scratch cleanup */ }
