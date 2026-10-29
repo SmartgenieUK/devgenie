@@ -203,10 +203,10 @@
   "rule_version": "intake-rule/2",
   "bank_version": "intake-bank/2",
   "receipt": {
-    "receipt_id": "irc_c38bdbbfe8292a60",
-    "decided_at": "2026-10-28T10:44:12.905Z",
+    "receipt_id": "irc_33c7eb07f7a0fd41",
+    "decided_at": "2026-10-29T09:00:06.423Z",
     "ratings_sha256": "1608dd8f740988a75d902f1a1e3b51485ab9ba758d9e93e832a9b94a12a4986d",
     "card_sha256": "7d3b88921891850a44dd0af3cdfc3a3eb5c2bb0c5e79ba99c94c42b17a56a88d",
-    "signature": "MEYCIQD9ZuOSPAB3BiStbVCGfun+ozG0bg5+09xQL9ebFgUNzQIhAOUaTGJjfDjAGgor9IycNtSStzoyR6kaBioNKjPTkuFe"
+    "signature": "MEUCIGn1Zy9cST+wDe1R7pD1Wd4yX51n1N7Zar0p6a3xVaXsAiEA9Quebtz2vZBICu+G7iqUQkscfueSFlZ/BNy6Gt5ZYdE="
   }
 }
