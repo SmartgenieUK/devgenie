@@ -16,6 +16,9 @@ fresh `/devgenie:intake`, needs this version: update the plugin, restart Claude 
   check and `/devgenie:scaffold` each verify the intake result's signature with the key bundled in this plugin, and
   unlock only on PASS or CONDITIONAL. An edited result, or one without a signed receipt, blocks with a message to
   re-run `/devgenie:intake`.
+- **Tier-2 agent foundation too.** `/devgenie:agent-foundation` runs the same check before drafting: a signed PASS
+  or CONDITIONAL proceeds; an intake result from before this release, an edited one, or none blocks with a message
+  to re-run `/devgenie:intake`.
 - **What this means for an existing project.** A project that returns to foundation, or is past its gate but not yet
   scaffolded, or moves up to a production scaffold, and holds an intake result from before this release (or none),
   runs `/devgenie:intake` once. Projects already scaffolded are not affected.
