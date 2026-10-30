@@ -25,3 +25,5 @@ fresh `/devgenie:intake`, needs this version: update the plugin, restart Claude 
 - **What the check is, and is not.** The check runs on your machine. It confirms the result was issued by DevGenie
   and not edited; it does not prove your inputs are true, it does not tie the result to one project, and someone who
   edits the plugin can switch it off. It is a guard rail for your own build, not a certificate for a third party.
+- **How intake works.** The README has a new section: what intake checks, the four verdicts, answering its
+  questions, the signed result, and updating from 0.3.6.
