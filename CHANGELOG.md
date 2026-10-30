@@ -23,7 +23,7 @@ fresh `/devgenie:intake`, needs this version: update the plugin, restart Claude 
   scaffolded, or moves up to a production scaffold, and holds an intake result from before this release (or none),
   runs `/devgenie:intake` once. Projects already scaffolded are not affected.
 - **What the check is, and is not.** The check runs on your machine. It confirms the result was issued by DevGenie
-  and not edited; it does not prove your inputs are true, it does not tie the result to one project, and someone who
+  and that nothing DevGenie signed was changed; it does not prove your inputs are true, it does not tie the result to one project, and someone who
   edits the plugin can switch it off. It is a guard rail for your own build, not a certificate for a third party.
 - **How intake works.** The README has a new section: what intake checks, the four verdicts, answering its
   questions, the signed result, and updating from 0.3.6.
