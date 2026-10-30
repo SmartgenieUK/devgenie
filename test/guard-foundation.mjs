@@ -7,7 +7,8 @@
 // throwaway P-256 key; fixture-key.pem is its public half. A marker is the decision plus gate: "intake". The guard is
 // copied into a temporary plugin root whose keys/ holds the fixture key; one case runs the real shipped guard against
 // the real bundled key. A marker without a verifying receipt blocks (owner ruling HITL-017 as superseded: the old
-// intake is discontinued). The foundation skill's step 1 runs the intake-receipt phase before drafting.
+// intake is discontinued). The foundation and agent-foundation skills' step 1 runs the intake-receipt phase before
+// drafting.
 // No network, no node_modules, no private key. Needs bash, jq, openssl and base64.
 //   node test/guard-foundation.mjs
 import { spawnSync } from "node:child_process";
@@ -21,6 +22,7 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
 const GUARD = join(REPO, "plugins", "devgenie", "scripts", "guard.sh");
 const FIX = join(REPO, "test", "fixtures", "intake-receipt");
 const SKILL = join(REPO, "plugins", "devgenie", "skills", "foundation", "SKILL.md");
+const AGENT_SKILL = join(REPO, "plugins", "devgenie", "skills", "agent-foundation", "SKILL.md");
 
 const missing = ["bash", "jq", "openssl", "base64"].filter((t) => spawnSync("bash", ["-c", `command -v ${t}`]).status !== 0);
 if (missing.length) {
@@ -216,6 +218,34 @@ console.log("\n[CR-210] F: the foundation skill's step 1 runs the intake-receipt
   check("step 1 stops an unsigned PASS before drafting", rerun(r, NO_RECEIPT), show(r));
 }
 
+console.log("\n[CR-210] A: the agent-foundation skill's step 1 runs the intake-receipt phase\n");
+{
+  const skill = readFileSync(AGENT_SKILL, "utf8").replace(/\r\n/g, "\n");
+  const CMD = 'bash "${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh" intake-receipt';
+  const step1 = skill.split(/\n2\. /)[0];
+  // The first fenced block in step 1, run as written: the witness exercises the skill's own text, not a constant.
+  const fences = step1.split("\n").reduce((at, line, i) => (line.trim().startsWith("```") ? [...at, i] : at), []);
+  const block = fences.length >= 2 ? step1.split("\n").slice(fences[0] + 1, fences[1]).join("\n") : "";
+  check("agent-foundation step 1 runs the intake-receipt phase", block.trim() === CMD, JSON.stringify(block.trim()));
+  check("agent-foundation holds no skill-side verdict check", !skill.includes('.verdict=="PASS"') && !/jq -e '[^']*verdict/.test(skill));
+  const runAgentStep1 = (m) => {
+    const res = spawnSync("bash", ["-c", block || "exit 99"], {
+      cwd: project(m, { arch: false, assumptions: false }), encoding: "utf8",
+      env: { ...process.env, CLAUDE_PLUGIN_ROOT: root.replace(/\\/g, "/") },
+    });
+    return { code: res.status, out: (res.stdout || "").trim(), err: (res.stderr || "").trim() };
+  };
+  r = runAgentStep1(fx("conditional"));
+  check("agent-foundation step 1 lets a signed CONDITIONAL reach drafting", unlocks(r, "intake-receipt"), show(r));
+  r = runAgentStep1(writer("pass"));
+  check("agent-foundation step 1 lets a served-writer PASS reach drafting", unlocks(r, "intake-receipt"), show(r));
+  r = runAgentStep1({ gate: "intake", verdict: "PASS" });
+  check("agent-foundation step 1 stops an unsigned PASS before drafting", rerun(r, NO_RECEIPT), show(r));
+  r = runAgentStep1(edit("hold", (m) => { m.verdict = "PASS"; }));
+  check("agent-foundation step 1 stops an edited marker before drafting", rerun(r, NOT_VERIFY), show(r));
+  r = runAgentStep1(null);
+  check("agent-foundation step 1 stops when there is no intake result", rerun(r, "no intake result"), show(r));
+}
 try { rmSync(work, { recursive: true, force: true }); } catch { /* best-effort scratch cleanup */ }
 console.log(failures ? `\nGUARD-FOUNDATION: FAIL (${failures} failed, ${passed} passed)` : `\nGUARD-FOUNDATION: OK (${passed} passed)`);
 process.exit(failures ? 1 : 0);
