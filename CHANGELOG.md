@@ -2,7 +2,7 @@
 
 ## 0.3.7
 
-Pairs with the DevGenie server at contract v1.29. **The server is updated first, and this plugin is released straight
+Pairs with the DevGenie server at contract v1.30. **The server is updated first, and this plugin is released straight
 after.** Until you update, plugin 0.3.6 keeps working with an intake result that passed; a CONDITIONAL result, or a
 fresh `/devgenie:intake`, needs this version: update the plugin, restart Claude Code and run `/devgenie:intake` once.
 
