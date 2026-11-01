@@ -1,5 +1,24 @@
 # Changelog — the DevGenie plugin
 
+## 0.3.8
+
+Pairs with the DevGenie server at contract v1.31. **Update this plugin first; the server's change goes live after it.**
+This version checks both the intake results today's server signs and the new ones. Plugin 0.3.7 cannot check the new
+ones, so once the server is updated, a new intake result blocks foundation and scaffold on 0.3.7 until you update.
+
+- **Intake asks about the UI.** The solution card asks three more questions: does the solution have a user interface
+  and on which devices, is there a brand or design system to follow, and what accessibility level is wanted (for
+  example WCAG 2.2 AA). "Not decided yet" is an answer: foundation proposes a default for you to confirm.
+- **Salvage projects get a triage.** For a salvage project, intake also inspects the existing code (security first,
+  then what works today, then what can be kept) and records keep, fix or rebuild for each part, each citing the code
+  by file and line. A part with a security finding is never kept as it is. The triage sits beside the verdict and is
+  signed with it.
+- **Agent-scaffold checks the intake result.** `/devgenie:agent-scaffold` now verifies the signed intake result
+  before it checks the Tier-2 gate, as `/devgenie:scaffold` does. An intake result from before plugin 0.3.7, an
+  edited one, or none blocks with a message to run `/devgenie:intake` once.
+- **Your signed intake result still works.** A result signed while you used 0.3.7 still unlocks foundation, scaffold
+  and agent-scaffold; nothing needs re-running for it.
+
 ## 0.3.7
 
 Pairs with the DevGenie server at contract v1.30. **The server is updated first, and this plugin is released straight
