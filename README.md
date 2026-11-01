@@ -31,7 +31,9 @@ facts rather than guesses. Intake designs nothing itself.
 
 **What happens when you run it.** Claude Code reads `docs/inputs/` and rates each thing intake checks as present,
 partial or absent, citing the file and line it relies on. It asks you the solution questions your inputs leave open,
-each with a short explanation. DevGenie then decides the verdict and signs the result.
+each with a short explanation. Its questions include whether the solution has a user interface and on which devices,
+which brand or design system it follows, and what accessibility level it needs; "Not decided yet" is an answer, and
+foundation then proposes a default for you to confirm. DevGenie then decides the verdict and signs the result.
 
 **The four verdicts.**
 
@@ -48,22 +50,37 @@ means, why it matters and what a good answer contains. Each answer is saved as a
 number of rounds.
 
 **The signed result.** The result is saved as `.devgenie/intake.json`, signed by DevGenie. `/devgenie:foundation`,
-`/devgenie:agent-foundation`, `/devgenie:gate` and `/devgenie:scaffold` each check that signature, and go ahead only
-on PASS or CONDITIONAL. A change to the verdict, or to anything else DevGenie signed, is detected and blocks: run
+`/devgenie:agent-foundation`, `/devgenie:gate`, `/devgenie:scaffold` and `/devgenie:agent-scaffold` each check that
+signature, and go ahead only on PASS or CONDITIONAL. A change to the verdict, or to anything else DevGenie signed, is detected and blocks: run
 `/devgenie:intake` again rather than editing the file. The signature shows that DevGenie made the decision; it does
 not make your inputs true.
 
-**Every kind of project.** Intake asks whether your project is new, an existing system, a replacement or a salvage.
-For now every kind is checked with the new-project rule, and the kind you confirmed is recorded in the result.
+**Every kind of project.** Intake asks whether your project is new, an existing system, a replacement or a salvage,
+and the kind you confirm is recorded in the result. A salvage project is checked with a rule of its own, and Claude
+Code also reads your existing code and gives each part a call: keep, fix or rebuild. It looks for security problems
+first, cites the file and line behind each call, and never calls a part with a security finding keep. DevGenie checks
+the triage's shape, signs it with the verdict and lists the parts with a security finding first; the triage never
+changes the verdict. DevGenie does not scan your code: the triage is Claude Code's reading of it. Existing systems and
+replacements are still checked with the new-project rule for now.
 
 **What stays on your machine.** Intake never sends file contents or quotes from your files. It sends the kind of
 project, the build depth, a few yes-or-no facts about the project, each rating with the file name and line it cites,
-and short answers to the solution questions.
+and short answers to the solution questions. For a salvage project it also sends a triage of the existing code: for
+each part, a short name, a keep, fix or rebuild call, whether it has a security finding, and the file names and lines
+it cites.
 
 **Updating from plugin 0.3.6.** Update the plugin (`/plugin marketplace update smartgenie`, then
 `/plugin install devgenie@smartgenie`), restart Claude Code and run `/devgenie:intake` once. An intake result recorded
-before 0.3.7 is not signed, so foundation, agent-foundation, the gate and scaffold ask for that one re-run the next
-time a project reaches them. A project that does not run any of these again is not affected.
+before 0.3.7 is not signed, so foundation, agent-foundation, the gate, scaffold and agent-scaffold ask for that one
+re-run the next time a project reaches them. A project that does not run any of these again is not affected.
+
+**Updating from plugin 0.3.7.** Update the plugin (`/plugin marketplace update smartgenie`, then
+`/plugin install devgenie@smartgenie`) and restart Claude Code. Plugin 0.3.7 cannot check the intake results DevGenie
+signs after its intake update: foundation, agent-foundation, the gate and scaffold refuse them with "the intake
+result's receipt does not verify", although they are genuine. After updating, run the command again; you do not need
+to run intake again. Plugin 0.3.8 also accepts intake results signed while you used 0.3.7. It also checks the intake
+result at `/devgenie:agent-scaffold`: an agent project whose result is missing, unsigned or fails the signature check
+runs `/devgenie:intake` once.
 
 ## Using a licence key instead (preview testers)
 
