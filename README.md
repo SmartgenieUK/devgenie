@@ -58,9 +58,10 @@ not make your inputs true.
 **Every kind of project.** Intake asks whether your project is new, an existing system, a replacement or a salvage,
 and the kind you confirm is recorded in the result. A salvage project is checked with a rule of its own, and Claude
 Code also reads your existing code and gives each part a call: keep, fix or rebuild. It looks for security problems
-first, cites the file and line behind each call, and never calls a part with a security finding keep. DevGenie checks
-the triage's shape, signs it with the verdict and lists the parts with a security finding first; the triage never
-changes the verdict. DevGenie does not scan your code: the triage is Claude Code's reading of it. Existing systems and
+first and cites the file and line behind each call. DevGenie checks the triage's shape and refuses a keep call for any
+part the triage marks with a security finding, but it cannot check that the triage found every security problem. It
+signs the triage with the verdict and lists the parts with a security finding first; the triage never changes the
+verdict. DevGenie does not scan your code: the triage is Claude Code's reading of it. Existing systems and
 replacements are still checked with the new-project rule for now.
 
 **What stays on your machine.** Intake never sends file contents or quotes from your files. It sends the kind of

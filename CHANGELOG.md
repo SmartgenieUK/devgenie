@@ -13,8 +13,8 @@ with no intake re-run.
   example WCAG 2.2 AA). "Not decided yet" is an answer: foundation proposes a default for you to confirm.
 - **Salvage projects get their own rule and a triage.** For a salvage project, Claude Code also reads the existing
   code (security first, then what works today, then what can be kept) and records keep, fix or rebuild for each part,
-  each citing the code by file and line. A part with a security finding is never kept as it is. DevGenie checks the
-  triage's shape and signs it with the verdict; the triage never changes the verdict, and DevGenie does not scan your
+  each citing the code by file and line. DevGenie refuses a keep call for any part the triage marks with a security
+  finding, but it cannot check that the triage found every security problem. DevGenie checks the triage's shape and signs it with the verdict; the triage never changes the verdict, and DevGenie does not scan your
   code. Existing systems and replacements are still checked with the new-project rule for now.
 - **Agent-scaffold checks the intake result.** `/devgenie:agent-scaffold` now verifies the signed intake result
   before it checks the Tier-2 gate, as `/devgenie:scaffold` does. A missing intake result, one recorded before
