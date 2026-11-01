@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # guard.sh — DevGenie gate primitive. "The refusal is the product."
+# Plugin 0.3.8 fixture (devgenie-core CR-223, BRIEF-106): 0.3.7's guard with intake_receipt reading the receipt's
+# version (intake-rule/2: nine card questions, array 2; intake-rule/3: twelve, array 3 with the salvage triage as its
+# 22nd element, CR-223 item 3). The plugin release copies it.
 # Verifies REAL artifacts on disk, never a state.json flag, so a hand-edited state
 # file can never be used to skip a gate. Prints a clear reason and exits non-zero on block.
 set -euo pipefail
@@ -49,9 +52,17 @@ intake_receipt() {
     def js: if type == "array" then "[" + (map(js) | join(",")) + "]"
       elif type == "string" then "\"" + (split("\u007f") | map(tojson | .[1:-1]) | join("\u007f")) + "\""
       else tojson end;'
+  # The receipt's own signed rule_version picks the card's questions and the array version (CR-223): relabelling a
+  # receipt changes signed bytes, so it cannot pick the other recipe and still verify.
+  local rv rver keys
+  rv="$(jq -r '.rule_version // empty' .devgenie/intake.json 2>/dev/null || true)"
+  case "$rv" in
+    intake-rule/2) rver=2; keys='["solution_type","industry_vertical","users","data_handled","regulations","existing_estate","preferences","delivery_shape","ai_use"]' ;;
+    intake-rule/3) rver=3; keys='["solution_type","industry_vertical","users","data_handled","regulations","existing_estate","preferences","delivery_shape","ai_use","ui","design_system","accessibility"]' ;;
+    *) block "the intake result's rule version '$rv' is not one this plugin knows — update the plugin and re-run /devgenie:intake." ;;
+  esac
   # cardDigest: the card in question order, values, choices and citations sorted.
-  jq -j "$defs"' .card as $c | [("solution_type", "industry_vertical", "users", "data_handled", "regulations",
-      "existing_estate", "preferences", "delivery_shape", "ai_use") as $k | $c[$k] as $a |
+  jq -j --argjson keys "$keys" "$defs"' .card as $c | [$keys[] as $k | $c[$k] as $a |
     if $a.status != "answered" then [$k, $a.status, []]
     elif ($a.choices | type) == "array" then [$k, $a.status, ([$a.choices[] | [.force, .value, (.citations | cites)] | js] | sort_by(u16))]
     else [$k, $a.status, [($a.values | sort_by(u16)), ($a.citations | cites)]] end] | js' \
@@ -59,10 +70,11 @@ intake_receipt() {
   card="$(openssl dgst -sha256 < "$tmp/card.bin")"; card="${card%$'\r'}"; card="${card##* }"
   [[ "$card" =~ ^[0-9a-f]{64}$ ]] || block "could not hash the intake result's card with openssl."
   # canonicalIntakeReceipt: a fixed-order JSON array, rebuilt from the marker alone.
-  jq -j --arg card "$card" "$defs"' ["devgenie-intake-receipt", 2, .rule_version, .bank_version, .verdict, .starting_type,
+  jq -j --arg card "$card" --argjson rver "$rver" "$defs"' ["devgenie-intake-receipt", $rver, .rule_version, .bank_version, .verdict, .starting_type,
       .depth, .facts.personal_data, .facts.regulated_data, .facts.governed_industry, .facts.volume_stated,
       .facts.multi_customer, .facts.agent_track, .receipt.ratings_sha256, .receipt.card_sha256, $card,
-      .open_for_foundation, .next_gap.element, .next_gap.rating, .receipt.receipt_id, .receipt.decided_at] | js' \
+      .open_for_foundation, .next_gap.element, .next_gap.rating, .receipt.receipt_id, .receipt.decided_at]
+      + (if $rver == 3 then [(if .triage == null then null else [.triage[] | [.part, .call, .security_finding, (.citations | cites)]] end)] else [] end) | js' \
     .devgenie/intake.json > "$tmp/intake-payload.bin" 2>/dev/null || block "the intake result cannot be read — re-run /devgenie:intake."
   printf '%s' "$sig" | base64 -d > "$tmp/intake-sig.bin" 2>/dev/null || block "the intake result's signature is malformed — re-run /devgenie:intake."
   # The keys bundled with the plugin, as for the gate; never a key from the marker, the environment or the network.
@@ -176,6 +188,9 @@ case "$phase" in
     # Tier-2 crown jewel: cannot scaffold an agent until an INDEPENDENT Tier-2 gate recorded
     # a PASS (analogue of `scaffold`). Reads .devgenie/agent-gate.json.
     command -v jq >/dev/null 2>&1 || block "jq is required but not installed — install it (macOS: brew install jq · Windows: winget install jqlang.jq · Linux: apt-get install jq)."
+    # CR-223 item 2 (HITL-022): a passed Tier-2 gate does not prove a verified intake, so agent-scaffold checks the
+    # intake receipt itself, before the agent gate, as the scaffold arm does.
+    intake_receipt
     [ -s .devgenie/agent-gate.json ] || block "no Tier-2 rating-gate result — run /devgenie:agent-gate in a fresh session first."
     v="$(jq -r '.verdict // empty' .devgenie/agent-gate.json)"
     ind="$(jq -r '.independent // empty' .devgenie/agent-gate.json)"
