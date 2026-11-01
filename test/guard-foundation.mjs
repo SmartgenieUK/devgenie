@@ -23,6 +23,9 @@ const GUARD = join(REPO, "plugins", "devgenie", "scripts", "guard.sh");
 const FIX = join(REPO, "test", "fixtures", "intake-receipt");
 const SKILL = join(REPO, "plugins", "devgenie", "skills", "foundation", "SKILL.md");
 const AGENT_SKILL = join(REPO, "plugins", "devgenie", "skills", "agent-foundation", "SKILL.md");
+// CR-223 (0.3.8): the version-3 set, written by the same devgenie-core generator after BRIEF-106 to 108
+// (intake-rule/3, the twelve-question card, triage null), signed with its own throwaway key.
+const FIX3 = join(REPO, "test", "fixtures", "intake-receipt-v3");
 
 const missing = ["bash", "jq", "openssl", "base64"].filter((t) => spawnSync("bash", ["-c", `command -v ${t}`]).status !== 0);
 if (missing.length) {
@@ -53,6 +56,11 @@ function pluginRoot(keyPems) {
 }
 const FIXTURE_KEY = readFileSync(join(FIX, "fixture-key.pem"), "utf8");
 const root = pluginRoot([FIXTURE_KEY]);
+const raw3 = (name) => readFileSync(join(FIX3, `${name}.json`), "utf8");
+const fx3 = (name) => ({ ...JSON.parse(raw3(name)), gate: "intake" });
+const writer3 = (name) => readFileSync(join(FIX3, `writer-${name}.marker.json`), "utf8");
+const FIXTURE_KEY_V3 = readFileSync(join(FIX3, "fixture-key.pem"), "utf8");
+const root3 = pluginRoot([FIXTURE_KEY, FIXTURE_KEY_V3]);
 
 function project(m, { arch = true, assumptions = true } = {}) {
   const proj = join(work, `proj${n++}`);
@@ -117,13 +125,17 @@ const tamper = [
   ["receipt.decided_at", "pass", (m) => { m.receipt.decided_at = "2020-01-01T00:00:00.000Z"; }],
   ["facts.personal_data flipped", "pass", (m) => { m.facts.personal_data = true; }],
   ["depth", "pass", (m) => { m.depth = "mvp"; }],
-  ["rule_version", "pass", (m) => { m.rule_version = "intake-rule/9"; }],
+  ["rule_version relabelled intake-rule/3", "pass", (m) => { m.rule_version = "intake-rule/3"; }],
   ["HOLD with next_gap cleared and verdict PASS", "hold", (m) => { m.next_gap = null; m.verdict = "PASS"; }],
 ];
 for (const [what, base, f] of tamper) {
   r = guard(edit(base, f));
   check(`edited: ${what} blocks`, rerun(r, NOT_VERIFY), show(r));
 }
+
+// CR-223 (0.3.8): the receipt's rule_version picks the recipe; one this plugin does not know blocks, naming the update.
+r = guard(edit("pass", (m) => { m.rule_version = "intake-rule/9"; }));
+check("edited: an unknown rule_version blocks, naming the update", rerun(r, "is not one this plugin knows"), show(r));
 
 console.log("\n[CR-210] S: the signature\n");
 r = guard(edit("pass", (m) => { delete m.receipt.signature; }));
@@ -245,6 +257,59 @@ console.log("\n[CR-210] A: the agent-foundation skill's step 1 runs the intake-r
   check("agent-foundation step 1 stops an edited marker before drafting", rerun(r, NOT_VERIFY), show(r));
   r = runAgentStep1(null);
   check("agent-foundation step 1 stops when there is no intake result", rerun(r, "no intake result"), show(r));
+}
+
+console.log("\n[CR-223] R: v2 (what today's server signs) and v3 receipts both verify (plugin 0.3.8)\n");
+{
+  const g3 = (m, opts = {}) => guard(m, { guardPath: join(root3, "scripts", "guard.sh"), ...opts });
+  const edit3 = (name, f) => { const m = fx3(name); f(m); return m; };
+  check("the version-2 set is intake-rule/2 (the live server's shape)",
+    fx("pass").rule_version === "intake-rule/2" && JSON.parse(writer("pass")).rule_version === "intake-rule/2");
+  const p3 = fx3("pass");
+  check("the version-3 set is intake-rule/3 with twelve card questions and no triage",
+    p3.rule_version === "intake-rule/3" && Object.keys(p3.card).length === 12 && p3.triage === null &&
+    JSON.parse(writer3("pass")).rule_version === "intake-rule/3");
+  r = g3(fx("pass"));
+  check("v2 signed PASS unlocks", unlocks(r), show(r));
+  r = g3(writer("pass"));
+  check("v2 served-writer PASS unlocks", unlocks(r), show(r));
+  for (const name of ["pass", "conditional", "pass-del-path"]) {
+    r = g3(fx3(name));
+    check(`v3 signed ${name} unlocks`, unlocks(r), show(r));
+  }
+  for (const name of ["pass", "conditional"]) {
+    r = g3(writer3(name));
+    check(`v3 served-writer ${name} marker unlocks`, unlocks(r), show(r));
+  }
+  r = g3(fx3("hold"));
+  check("v3 signed HOLD blocks", rerun(r, "intake verdict is 'HOLD'"), show(r));
+  r = g3(fx3("fail"));
+  check("v3 signed FAIL blocks", rerun(r, "intake verdict is 'FAIL'"), show(r));
+  r = g3(fx3("pass-other-key"));
+  check("v3 receipt signed by another key blocks", rerun(r, NOT_VERIFY), show(r));
+  r = g3(raw3("pass-lone-surrogate-path").replace(/^\{/, '{\n  "gate": "intake",'));
+  check("v3 lone-surrogate citation path blocks (fail closed)", rerun(r, "is not an intake marker"), show(r));
+  const tamper3 = [
+    ["ui gains a value", "pass", (m) => { m.card.ui.values.push("mobile"); }],
+    ["design_system's status", "pass", (m) => { m.card.design_system = { status: "unanswered" }; }],
+    ["accessibility removed from the card", "pass", (m) => { delete m.card.accessibility; }],
+    ["an accessibility citation line", "pass", (m) => { m.card.accessibility.citations[0].line += 1; }],
+    ["ui removed from open_for_foundation", "pass", (m) => { m.open_for_foundation = m.open_for_foundation.filter((k) => k !== "ui"); }],
+    ["a triage added", "pass", (m) => { m.triage = [{ part: "auth", call: "keep", security_finding: false, citations: [{ file: "src/auth.ts", line: 1 }] }]; }],
+    ["rule_version relabelled intake-rule/2", "pass", (m) => { m.rule_version = "intake-rule/2"; }],
+    ["receipt.decided_at", "pass", (m) => { m.receipt.decided_at = "2020-01-01T00:00:00.000Z"; }],
+    ["verdict HOLD -> PASS", "hold", (m) => { m.verdict = "PASS"; }],
+  ];
+  for (const [what, base, f] of tamper3) {
+    r = g3(edit3(base, f));
+    check(`v3 edited: ${what} blocks`, rerun(r, NOT_VERIFY), show(r));
+  }
+  r = g3(fx3("conditional"), { phase: "intake-receipt", arch: false, assumptions: false });
+  check("intake-receipt: v3 signed CONDITIONAL, no ARCH.md, passes", unlocks(r, "intake-receipt"), show(r));
+  r = g3(edit3("hold", (m) => { m.verdict = "PASS"; }), { phase: "intake-receipt", arch: false, assumptions: false });
+  check("intake-receipt: an edited v3 marker blocks", rerun(r, NOT_VERIFY), show(r));
+  r = guard(fx3("pass"));
+  check("a v3 receipt does not verify against the version-2 key alone (the key set verifies)", rerun(r, NOT_VERIFY), show(r));
 }
 try { rmSync(work, { recursive: true, force: true }); } catch { /* best-effort scratch cleanup */ }
 console.log(failures ? `\nGUARD-FOUNDATION: FAIL (${failures} failed, ${passed} passed)` : `\nGUARD-FOUNDATION: OK (${passed} passed)`);
