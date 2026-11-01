@@ -20,7 +20,7 @@ const PLUGIN = join(REPO, "plugins", "devgenie");
 const GUARD = join(PLUGIN, "scripts", "guard.sh");
 const WRITER = join(PLUGIN, "scripts", "write-marker.sh");
 const read = (p) => readFileSync(p, "utf8").split("\r").join("");
-const VERSION = "0.3.7";
+const VERSION = "0.3.8";
 
 const missing = ["bash", "jq", "openssl", "base64"].filter((t) => spawnSync("bash", ["-c", `command -v ${t}`]).status !== 0);
 if (missing.length) {
@@ -165,6 +165,9 @@ w = runWriter(["agent-gate", ".devgenie/agent-gate-response.json"], "agent-gate-
 check("write-marker.sh agent-gate exits 0", w.code === 0, w.out);
 const aw = markerAt(w.proj, "agent-gate.json");
 check("the agent-gate marker equals the response's marker", aw !== null && JSON.stringify(JSON.parse(aw)) === JSON.stringify(agentMarker), aw ?? "");
+// CR-223 (0.3.8, HITL-022): agent-scaffold verifies the intake receipt before the agent gate, so the project holds
+// the served writer's PASS marker (its key is k1.pem in this plugin root), as [3] does for scaffold.
+copyFileSync(join(INTAKE_FIX, "writer-pass.marker.json"), join(w.proj, ".devgenie", "intake.json"));
 g = guardIn(w.proj, "agent-scaffold", root);
 check("the unchanged guard passes the written agent-gate marker", g.code === 0, g.out);
 w = runWriter(["agent-gate", ".devgenie/agent-gate-response.json"], "agent-gate-response.json", { verdict: "PASS", tier: "agent" });

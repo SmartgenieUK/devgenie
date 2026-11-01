@@ -67,6 +67,11 @@ const FIXTURE_KEY = readFileSync(join(FIX, "fixture-key.pem"), "utf8");
 const fx = (name) => ({ ...JSON.parse(readFileSync(join(FIX, `${name}.json`), "utf8")), gate: "intake" });
 const writer = (name) => readFileSync(join(FIX, `writer-${name}.marker.json`), "utf8");
 const GOOD_INTAKE = writer("pass");
+// CR-223 (0.3.8): the version-3 set (intake-rule/3), signed with its own throwaway key.
+const FIX3 = join(REPO, "test", "fixtures", "intake-receipt-v3");
+const FIXTURE_KEY_V3 = readFileSync(join(FIX3, "fixture-key.pem"), "utf8");
+const fx3 = (name) => ({ ...JSON.parse(readFileSync(join(FIX3, `${name}.json`), "utf8")), gate: "intake" });
+const writer3 = (name) => readFileSync(join(FIX3, `writer-${name}.marker.json`), "utf8");
 
 // A temporary plugin root: scripts/guard.sh copied from the package, keys/ holding the given public keys (KeyObjects
 // or PEM text). Every root also holds the intake fixture key unless asked not to.
@@ -78,6 +83,7 @@ function pluginRoot(keys, { intakeKey = true } = {}) {
   copyFileSync(GUARD, join(root, "scripts", "guard.sh"));
   keys.forEach((k, i) => writeFileSync(join(root, "keys", `k${i}.pem`), typeof k === "string" ? k : pem(k)));
   if (intakeKey && keys.length) writeFileSync(join(root, "keys", "intake-fixture.pem"), FIXTURE_KEY);
+  if (intakeKey && keys.length) writeFileSync(join(root, "keys", "intake-fixture-v3.pem"), FIXTURE_KEY_V3);
   return root;
 }
 const root = pluginRoot([main.publicKey]);
@@ -176,6 +182,13 @@ for (const [label, intake, text] of badIntake) {
   r = guard(GOOD_GATE, { intake });
   check(`${label} blocks scaffold even with a good gate`, rerun(r, text), show(r));
 }
+// CR-223 (0.3.8): a version-3 intake result.
+r = guard(GOOD_GATE, { intake: fx3("pass") });
+check("v3 signed intake PASS and a good gate unlock", unlocks(r, "mvp"), show(r));
+r = guard(GOOD_GATE, { intake: writer3("conditional") });
+check("v3 served-writer CONDITIONAL marker and a good gate unlock", unlocks(r, "mvp"), show(r));
+r = guard(GOOD_GATE, { intake: (() => { const m = fx3("pass"); m.card.ui.values.push("mobile"); return m; })() });
+check("v3 intake with its ui answer edited blocks scaffold", rerun(r, "receipt does not verify"), show(r));
 r = guard(marker("mvp"), { intake: fx("pass") });
 check("a good intake receipt, then an unsigned gate, blocks on the gate", blocks(r, "the gate result is not signed"), show(r));
 r = guard({ ...GOOD_GATE, grade: "A" }, { intake: fx("pass") });
@@ -183,6 +196,47 @@ check("a good intake receipt, then a tampered gate, blocks on the gate", blocks(
 r = guard(null, { intake: fx("pass") });
 check("a good intake receipt and no gate result blocks on the gate", blocks(r, "no rating verdict"), show(r));
 
+
+console.log("\n[CR-223] G: agent-scaffold checks the signed intake receipt first (HITL-022, plugin 0.3.8)\n");
+{
+  const AGENT_PASS = { verdict: "PASS", grade: "A", date: "2026-11-01", independent: true };
+  // agentGate: the .devgenie/agent-gate.json object, or null for none; intake as in guard().
+  function agentGuard(agentGate, intake = GOOD_INTAKE) {
+    const proj = join(work, `proj${n++}`);
+    mkdirSync(join(proj, ".devgenie"), { recursive: true });
+    if (agentGate !== null) writeFileSync(join(proj, ".devgenie", "agent-gate.json"), JSON.stringify(agentGate, null, 2));
+    if (intake !== null) writeFileSync(join(proj, ".devgenie", "intake.json"), typeof intake === "string" ? intake : JSON.stringify(intake, null, 2));
+    const res = spawnSync("bash", [join(root, "scripts", "guard.sh").replace(/\\/g, "/"), "agent-scaffold"], { cwd: proj, encoding: "utf8" });
+    return { code: res.status, out: (res.stdout || "").trim(), err: (res.stderr || "").trim() };
+  }
+  const passes = (r) => r.code === 0 && r.out === "GATE OK: agent-scaffold";
+  r = agentGuard(AGENT_PASS, writer("pass"));
+  check("agent-scaffold: v2 served-writer PASS and a passed agent gate pass", passes(r), show(r));
+  r = agentGuard(AGENT_PASS, writer3("pass"));
+  check("agent-scaffold: v3 served-writer PASS and a passed agent gate pass", passes(r), show(r));
+  r = agentGuard(AGENT_PASS, fx3("conditional"));
+  check("agent-scaffold: v3 signed CONDITIONAL and a passed agent gate pass", passes(r), show(r));
+  const refused = [
+    ["no intake result", null, "no intake result"],
+    ["an old PASS with no receipt", { gate: "intake", verdict: "PASS" }, "has no signed receipt"],
+    ["a v3 HOLD edited to PASS", { ...fx3("hold"), verdict: "PASS" }, "receipt does not verify"],
+    ["a v3 signed HOLD", fx3("hold"), "intake verdict is 'HOLD'"],
+    ["a v3 receipt signed by another key", fx3("pass-other-key"), "receipt does not verify"],
+  ];
+  for (const [label, intake, text] of refused) {
+    r = agentGuard(AGENT_PASS, intake);
+    check(`agent-scaffold: ${label} blocks even with a passed agent gate`, rerun(r, text), show(r));
+  }
+  r = agentGuard(null, null);
+  check("agent-scaffold: no intake and no agent gate blocks on the intake first",
+    rerun(r, "no intake result") && !r.err.includes("Tier-2"), show(r));
+  r = agentGuard(null);
+  check("agent-scaffold: a good intake and no agent gate blocks on the agent gate", blocks(r, "no Tier-2 rating-gate result"), show(r));
+  r = agentGuard({ ...AGENT_PASS, verdict: "FAIL" });
+  check("agent-scaffold: a good intake and a failed agent gate blocks", blocks(r, "Tier-2 gate verdict is 'FAIL'"), show(r));
+  r = agentGuard({ ...AGENT_PASS, independent: false });
+  check("agent-scaffold: a good intake and a non-independent agent gate blocks", blocks(r, "not marked independent"), show(r));
+}
 try { rmSync(work, { recursive: true, force: true }); } catch { /* best-effort scratch cleanup */ }
 console.log(failures ? `\nGUARD-SCAFFOLD: FAIL (${failures} failed, ${passed} passed)` : `\nGUARD-SCAFFOLD: OK (${passed} passed)`);
 process.exit(failures ? 1 : 0);
