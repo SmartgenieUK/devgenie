@@ -51,9 +51,10 @@ number of rounds.
 
 **The signed result.** The result is saved as `.devgenie/intake.json`, signed by DevGenie. `/devgenie:foundation`,
 `/devgenie:agent-foundation`, `/devgenie:gate`, `/devgenie:scaffold` and `/devgenie:agent-scaffold` each check that
-signature, and go ahead only on PASS or CONDITIONAL. A change to the verdict, or to anything else DevGenie signed, is detected and blocks: run
-`/devgenie:intake` again rather than editing the file. The signature shows that DevGenie made the decision; it does
-not make your inputs true.
+signature, and go ahead only on PASS or CONDITIONAL. If the verdict, or anything else DevGenie signed, is edited, the
+check fails and the command blocks: run `/devgenie:intake` again rather than editing the file. The check runs on your
+machine, against the keys in the plugin's own folder, so it is a guard rail for an honest user: someone who changes
+the plugin's own files, for example by adding a key of their own, can get past it. It does not make your inputs true.
 
 **Every kind of project.** Intake asks whether your project is new, an existing system, a replacement or a salvage,
 and the kind you confirm is recorded in the result. A salvage project is checked with a rule of its own, and Claude
