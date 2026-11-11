@@ -1,5 +1,12 @@
 # Changelog — the DevGenie plugin
 
+## 0.3.11
+
+- **The DevGenie logo at session start.** When you start or resume a Claude Code session and are signed in to
+  DevGenie, the DevGenie logo shows once. It never shows when you are not signed in, and never after `/clear`.
+- **Clearer sign-in advice.** `/devgenie:setup` now says to run the sign-in command in a separate terminal or SSH
+  session, never through Claude or with a `!` prefix: the command reads from a real keyboard and refuses anything else.
+
 ## 0.3.10
 
 - **Fix: sign-in now saves after you answer y.** In 0.3.9 the "Sign in as ...? [y/N]" question read your answer too

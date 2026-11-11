@@ -17,7 +17,7 @@ import { existsSync } from "node:fs";
 import { join, delimiter } from "node:path";
 import { readStatus, SIGNIN_COMMAND } from "../../scripts/signin-lib.mjs";
 
-export const MIN_CLAUDE_VERSION = "2.1.154"; // the version that added userConfig header interpolation
+export const MIN_CLAUDE_VERSION = "2.1.154"; // the lowest Claude Code version DevGenie supports
 export const DEPS = ["jq", "openssl", "base64"];
 
 // Compare dotted numeric versions. Returns <0, 0, >0 like a comparator. Non-numeric tails are ignored.
