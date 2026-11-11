@@ -10,7 +10,7 @@
 
 import { pathToFileURL } from "node:url";
 import {
-  makeCtx, loadRecord, saveRecord, recordOk, withLock, refreshToken, checkClaims, FIXED, FIVE_MINUTES, HELPER_FAIL,
+  makeCtx, loadRecord, saveRecord, recordOk, withLock, refreshToken, checkClaims, readGen, FIXED, FIVE_MINUTES, HELPER_FAIL,
 } from "./signin-lib.mjs";
 
 export async function runHelper(deps = {}) {
@@ -23,6 +23,7 @@ export async function runHelper(deps = {}) {
 
   try {
     if (env.CLAUDE_CODE_MCP_SERVER_URL !== FIXED.server) return fail();
+    const gen0 = readGen(ctx); // the generation when the record was read; a sign-out bumps it
     let rec = loadRecord(ctx);
     if (!recordOk(rec)) return fail();
 
@@ -40,6 +41,7 @@ export async function runHelper(deps = {}) {
           expires_at: ctx.now() + Number(tok.expires_in) * 1000,
           refresh_token: typeof tok.refresh_token === "string" && tok.refresh_token ? tok.refresh_token : cur.refresh_token,
         };
+        if (readGen(ctx) !== gen0) return null; // a sign-out happened since the read: never save the record back
         saveRecord(ctx, next);
         return next;
       }, 3000);
