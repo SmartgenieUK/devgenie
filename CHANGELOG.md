@@ -1,5 +1,20 @@
 # Changelog — the DevGenie plugin
 
+## 0.3.9
+
+Pairs with the DevGenie server at contract v1.35. **Sign in again once after updating.**
+
+- **Sign in from any device.** Run the sign-in command `/devgenie:setup` gives you, in a terminal of your own (a
+  second SSH session works). It prints a link: open it on any device, a phone included, sign in, copy the code the
+  page shows and paste it into that terminal. It works on a remote machine with no browser.
+- **Run it once after updating.** This version stops using Claude Code's own browser sign-in for DevGenie, so
+  DevGenie shows as failed to connect until you run the sign-in command once. `/devgenie:setup` gives you the
+  command with its full path.
+- **Signing out.** Run the same command with `--sign-out`. It removes the sign-in from this machine only; an open
+  Claude Code session can keep working for up to an hour, so restart open sessions.
+- **Where the sign-in is kept.** macOS: your login keychain. Windows: encrypted for your Windows account. Linux: a
+  file only you can read, under `~/.devgenie/auth/`.
+
 ## 0.3.8
 
 Pairs with the DevGenie server at contract v1.31. **Update this plugin first; the server's change goes live after it.**
