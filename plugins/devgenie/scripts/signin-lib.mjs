@@ -327,6 +327,18 @@ function lockOwner(ctx, lockPath) {
   return t !== null && /^\d+$/.test(t.trim()) ? Number(t.trim()) : null;
 }
 
+// Removes a stale lock without ever removing one that someone else has just taken: the lock is first moved
+// aside under a unique name (atomic, so only one waiter gets it), its pid is read again from the moved file,
+// and it is deleted only if it is still the dead owner's; otherwise it is linked back (never over a newer lock).
+function breakStale(ctx, lockPath, deadPid) {
+  const aside = `${lockPath}.stale-${process.pid}-${randomBytes(4).toString("hex")}`;
+  try { ctx.fsx.renameSync(lockPath, aside); } catch (e) { if (e.code === "ENOENT") return; throw e; }
+  if (lockOwner(ctx, aside) !== deadPid) {
+    try { ctx.fsx.linkSync(aside, lockPath); } catch (e) { if (e.code !== "EEXIST") throw e; }
+  }
+  removeFile(ctx, aside);
+}
+
 /** Runs fn while holding the cross-process lock. Never breaks a lock on age; only when its owner has exited. */
 export async function withLock(ctx, fn, timeoutMs) {
   const dir = ensureDir(ctx);
@@ -345,7 +357,7 @@ export async function withLock(ctx, fn, timeoutMs) {
     }
     const pid = lockOwner(ctx, lockPath);
     if (pid !== null && pid > 0 && ctx.isAlive(pid) === false) {
-      removeFile(ctx, lockPath);
+      breakStale(ctx, lockPath, pid);
       continue;
     }
     if (ctx.now() >= until) throw new StoreError(LOCK_FAIL);
