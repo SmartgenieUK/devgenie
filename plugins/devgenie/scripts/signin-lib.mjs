@@ -9,7 +9,8 @@
 //   - no secret ever goes in a command argument: keychain and DPAPI text travel on stdin and stdout pipes;
 //   - on Linux and macOS the sign-in folder and files must be owned by the user with modes 700 and 600, are
 //     never symbolic links, are checked on the opened handle, and are never chmod-ed to make things work;
-//   - a lock is broken only after its owner process is confirmed to have exited, never because it is old;
+//   - a lock is broken only after its owner process is confirmed to have exited, never because it is old, and
+//     only by the one holder of a breaker slot (BRIEF-147): no two processes are ever inside the lock at once;
 //   - error text is fixed; it never carries a token, a code, a request or response body, or an exception.
 
 import { createHash, randomBytes } from "node:crypto";
@@ -322,21 +323,77 @@ function writeGen(ctx, n) {
   writeText(ctx, fileOf(ctx, "gen"), String(n));
 }
 
-function lockOwner(ctx, lockPath) {
-  const t = readText(ctx, lockPath);
-  return t !== null && /^\d+$/.test(t.trim()) ? Number(t.trim()) : null;
+// The lock and its breaker slots are files holding their maker's pid, each created whole: a private temporary is
+// hard-linked into place, which fails if the path exists, so none is ever seen empty and one maker wins a path.
+function createWhole(ctx, path) {
+  const tmp = `${path}.tmp-${process.pid}-${randomBytes(4).toString("hex")}`;
+  const fd = openChecked(ctx, tmp, O_WRONLY | O_CREAT | O_EXCL, 0o600);
+  try {
+    try { ctx.fsx.writeSync(fd, String(process.pid)); } finally { ctx.fsx.closeSync(fd); }
+    ctx.fsx.linkSync(tmp, path);
+    return true;
+  } catch (e) {
+    if (e.code === "EEXIST") return false;
+    throw e;
+  } finally {
+    removeFile(ctx, tmp);
+  }
 }
 
-// Removes a stale lock without ever removing one that someone else has just taken: the lock is first moved
-// aside under a unique name (atomic, so only one waiter gets it), its pid is read again from the moved file,
-// and it is deleted only if it is still the dead owner's; otherwise it is linked back (never over a newer lock).
-function breakStale(ctx, lockPath, deadPid) {
-  const aside = `${lockPath}.stale-${process.pid}-${randomBytes(4).toString("hex")}`;
-  try { ctx.fsx.renameSync(lockPath, aside); } catch (e) { if (e.code === "ENOENT") return; throw e; }
-  if (lockOwner(ctx, aside) !== deadPid) {
-    try { ctx.fsx.linkSync(aside, lockPath); } catch (e) { if (e.code !== "EEXIST") throw e; }
+// A file's identity (device and inode, or the NTFS file id). An open handle keeps it from being reused, so "the path
+// still names the file I hold open" is a comparison of identities, never of contents. An identity of 0 (a file
+// system that reports none) never matches, so nothing is broken there: the safe side.
+const idOf = (st) => (BigInt(st.ino) === 0n ? null : `${st.dev}:${st.ino}`);
+function sameFile(ctx, path, fd) {
+  let st;
+  try { st = ctx.fsx.lstatSync(path, { bigint: true }); } catch (e) { if (e.code === "ENOENT") return false; throw e; }
+  const id = idOf(st);
+  return id !== null && id === idOf(ctx.fsx.fstatSync(fd, { bigint: true }));
+}
+
+// An open handle on the file at path if its maker has exited and the path still names it after that test: the file
+// outlived its maker, which is the only process that removes its own file, so it stays until a breaker removes it
+// (a slot, never). Null otherwise. The caller closes the handle.
+function openDead(ctx, path) {
+  let fd;
+  try { fd = openChecked(ctx, path, O_RDONLY); } catch (e) { if (e.code === "ENOENT") return null; throw e; }
+  let keep = false;
+  try {
+    const text = ctx.fsx.readFileSync(fd, "utf8").trim();
+    const pid = /^\d+$/.test(text) ? Number(text) : 0;
+    keep = pid > 0 && ctx.isAlive(pid) === false && sameFile(ctx, path, fd);
+    return keep ? fd : null;
+  } finally {
+    if (!keep) ctx.fsx.closeSync(fd);
   }
-  removeFile(ctx, aside);
+}
+
+// Breaker slots <lock>.break.0, .1, ...: a process holds slot k only if it created it after finding every lower slot
+// dead. A dead slot is never removed, so nobody can create it later: at most one process holds a slot at a time. A
+// breaker killed mid-break leaves its slot dead (and perhaps its temporary); the next breaker takes the next slot.
+// No age rule: a live breaker can be suspended at any instruction, so age proves nothing; its exit does.
+function takeBreakerSlot(ctx, lockPath) {
+  for (let k = 0; ; k++) {
+    const slot = `${lockPath}.break.${k}`;
+    if (createWhole(ctx, slot)) return slot;
+    const fd = openDead(ctx, slot);
+    if (fd === null) return null; // a live breaker, or a slot just freed: wait
+    ctx.fsx.closeSync(fd);
+  }
+}
+
+// Removes the stale lock held open on fd, only while holding a breaker slot and only if the lock path still names
+// that file: only a breaker removes a lock whose owner has exited, there is one breaker, and nobody creates the lock
+// while it exists, so the unlink cannot hit a newer lock. Nothing is moved aside or linked back. True if it held a slot.
+function breakStale(ctx, lockPath, fd) {
+  const slot = takeBreakerSlot(ctx, lockPath);
+  if (slot === null) return false;
+  try {
+    if (sameFile(ctx, lockPath, fd)) removeFile(ctx, lockPath);
+  } finally {
+    removeFile(ctx, slot);
+  }
+  return true;
 }
 
 /** Runs fn while holding the cross-process lock. Never breaks a lock on age; only when its owner has exited. */
@@ -345,20 +402,14 @@ export async function withLock(ctx, fn, timeoutMs) {
   const lockPath = join(dir, `${FIXED.tenant}.lock`);
   const until = Math.min(ctx.now() + timeoutMs, ctx.deadline);
   for (;;) {
-    let fd = null;
-    try {
-      fd = openChecked(ctx, lockPath, O_WRONLY | O_CREAT | O_EXCL, 0o600);
-    } catch (e) {
-      if (e.code !== "EEXIST") throw e;
-    }
-    if (fd !== null) {
-      try { ctx.fsx.writeSync(fd, String(process.pid)); } finally { ctx.fsx.closeSync(fd); }
+    if (createWhole(ctx, lockPath)) {
       try { return await fn(); } finally { removeFile(ctx, lockPath); }
     }
-    const pid = lockOwner(ctx, lockPath);
-    if (pid !== null && pid > 0 && ctx.isAlive(pid) === false) {
-      breakStale(ctx, lockPath, pid);
-      continue;
+    const dead = openDead(ctx, lockPath);
+    if (dead !== null) {
+      let broke;
+      try { broke = breakStale(ctx, lockPath, dead); } finally { ctx.fsx.closeSync(dead); }
+      if (broke) continue;
     }
     if (ctx.now() >= until) throw new StoreError(LOCK_FAIL);
     await ctx.sleep(100);
@@ -397,12 +448,15 @@ export function refreshToken(ctx, refresh) {
 
 // ── Status and sign-out ──────────────────────────────────────────────────────────────────────────────
 
-/** Metadata only, never a token. */
+export const STATUS_DAMAGED = "The saved sign-in is damaged or not for DevGenie; run the sign-in command again.";
+
+/** Metadata only, never a token. A record the helper would refuse is reported as not signed in. */
 export function readStatus(ctx = makeCtx()) {
   try {
     const r = loadRecord(ctx);
     if (!r) return { signedIn: false };
-    return { signedIn: true, account: String(r.account ?? ""), expiresAt: Number(r.expires_at) };
+    if (!recordOk(r) || Number.isNaN(new Date(r.expires_at).getTime())) return { signedIn: false, problem: STATUS_DAMAGED };
+    return { signedIn: true, account: String(r.account ?? ""), expiresAt: r.expires_at };
   } catch (e) {
     return { signedIn: false, problem: e instanceof StoreError ? e.message : STORE_FAIL };
   }
