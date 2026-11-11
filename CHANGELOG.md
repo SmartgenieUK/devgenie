@@ -2,7 +2,7 @@
 
 ## 0.3.9
 
-Pairs with the DevGenie server at contract v1.35. **Sign in again once after updating.**
+Pairs with the DevGenie server at contract v1.36. **Sign in again once after updating.**
 
 - **Sign in from any device.** Run the sign-in command `/devgenie:setup` gives you, in a terminal of your own (a
   second SSH session works). It prints a link: open it on any device, a phone included, sign in, copy the code the
@@ -12,6 +12,8 @@ Pairs with the DevGenie server at contract v1.35. **Sign in again once after upd
   command with its full path.
 - **Signing out.** Run the same command with `--sign-out`. It removes the sign-in from this machine only; an open
   Claude Code session can keep working for up to an hour, so restart open sessions.
+- **A damaged sign-in is reported, not trusted.** If the saved sign-in cannot be used, `/devgenie:setup` and
+  `--status` say you are not signed in; run the sign-in command again.
 - **Where the sign-in is kept.** macOS: your login keychain. Windows: encrypted for your Windows account. Linux: a
   file only you can read, under `~/.devgenie/auth/`.
 
