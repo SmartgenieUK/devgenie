@@ -1,5 +1,10 @@
 # Changelog — the DevGenie plugin
 
+## 0.3.10
+
+- **Fix: sign-in now saves after you answer y.** In 0.3.9 the "Sign in as ...? [y/N]" question read your answer too
+  late and treated it as no, so a real terminal always printed "Not saved.". Update, then run the sign-in command again.
+
 ## 0.3.9
 
 Pairs with the DevGenie server at contract v1.36. **Sign in again once after updating.**
