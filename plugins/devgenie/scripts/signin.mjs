@@ -45,7 +45,7 @@ function readHidden(stdin) {
 function readVisible(stdin) {
   return new Promise((resolve) => {
     const rl = createInterface({ input: stdin });
-    rl.once("line", (line) => { rl.close(); resolve(line); });
+    rl.once("line", (line) => { resolve(line); rl.close(); }); // resolve first: close() emits "close" synchronously
     rl.once("close", () => resolve(""));
   });
 }
