@@ -18,7 +18,7 @@ const PLUGIN = join(REPO, "plugins", "devgenie");
 const STEP = join(PLUGIN, "scripts", "step-ledger.sh").replace(/\\/g, "/");
 const VALIDATE = join(PLUGIN, "scripts", "validate-agent-specs.sh").replace(/\\/g, "/");
 const read = (p) => readFileSync(p, "utf8").split("\r").join("");
-const VERSION = "0.3.8";
+const VERSION = "0.3.9";
 
 // The old prompt commands, verbatim (devgenie-core b92d9c31).
 const OLD_STEP_FOUNDATION = "mkdir -p .devgenie\ntask=\"$(grep -ioE 'ACTIVE TASK( POINTER)?:[[:space:]]*[^ ]+' CLAUDE.md 2>/dev/null | head -1 | sed -E 's/.*:[[:space:]]*//' || true)\"; task=\"${task:-unattributed}\"\nproj=\"$(basename \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\")\"\njq -nc --arg ts \"$(date -u +%FT%TZ)\" --arg project \"$proj\" --arg task \"$task\" \\\n  '{ts:$ts, step:\"foundation\", outcome:\"drafted\", project:$project, task:$task, tokens:null}' \\\n  >> .devgenie/step-ledger.jsonl\n";

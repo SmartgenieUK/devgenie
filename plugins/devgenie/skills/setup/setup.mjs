@@ -2,8 +2,10 @@
 // client/skills/setup/setup.mjs — the /devgenie:setup preflight helper (CR-170).
 //
 // Pure environment mechanics; holds NO methodology and NO credential. It never reads, stores, or transmits
-// a sign-in token and never makes a server call — sign-in happens only in Claude Code's own /mcp flow and
-// the connectivity probe is the SKILL.md's job (only the Claude Code host holds the MCP connection).
+// a sign-in token and never makes a server call. It reports whether a DevGenie sign-in is saved (account and
+// expiry only, from ../../scripts/signin-lib.mjs) and gives the sign-in command the user runs in a terminal of
+// their own (CR-227 slice 4). The connectivity probe is the SKILL.md's job (only the Claude Code host holds
+// the MCP connection).
 //
 // Two halves:
 //   • decide(probe)  — a PURE function over already-gathered probe results. This is what the gate drives.
@@ -13,6 +15,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join, delimiter } from "node:path";
+import { readStatus, SIGNIN_COMMAND } from "../../scripts/signin-lib.mjs";
 
 export const MIN_CLAUDE_VERSION = "2.1.154"; // the version that added userConfig header interpolation
 export const DEPS = ["jq", "openssl", "base64"];
@@ -56,7 +59,7 @@ export function decide(probe) {
   // 3. Environment is ready. Sign-in + the connectivity probe are the SKILL.md's steps; this helper never
   //    handles a credential.
   return { state: "ready", ok: true,
-    message: "Environment ready. Next: make sure you are signed in (run /mcp, choose devgenie-core, authenticate), then run any /devgenie:* command." };
+    message: "Environment ready. Next: make sure you are signed in to DevGenie, then run any /devgenie:* command." };
 }
 
 // ── real probes (CLI side; decide() stays pure and testable) ─────────────────────────────────────────
@@ -95,5 +98,9 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
   const deps = Object.fromEntries(DEPS.map((d) => [d, probeDep(d)]));
   const verdict = decide({ claudeVersion: probeClaudeVersion(), deps });
   console.log(verdict.message);
+  const s = readStatus();
+  if (s.signedIn) console.log(`Sign-in: signed in as ${s.account}; the access token is valid until ${new Date(s.expiresAt).toISOString()}.`);
+  else console.log(s.problem ? `Sign-in: not signed in (${s.problem})` : "Sign-in: not signed in.");
+  console.log(`To sign in, run this in a terminal of your own (not through Claude): ${SIGNIN_COMMAND}`);
   process.exit(verdict.ok ? 0 : 1);
 }
