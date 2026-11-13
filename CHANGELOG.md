@@ -1,5 +1,10 @@
 # Changelog — the DevGenie plugin
 
+## Unreleased
+
+- **README: the Lite path.** Get started now begins with a free Lite account (a work email, no card), then install, `/devgenie:setup`, the sign-in command run in a terminal of your own, and `/devgenie:new`. Pro is named as the upgrade.
+- **README: the preview-key section is removed.** The preview keys ended on 5 November 2026; customers sign in with the sign-in command. The README no longer documents the key route.
+
 ## 0.3.11
 
 - **The DevGenie logo at session start.** When you start or resume a Claude Code session and are signed in to
