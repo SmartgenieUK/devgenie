@@ -5,7 +5,7 @@
 
 ## Get started
 
-1. Create a free Lite account at <https://devgenie.smartgenie.co.uk/portal>. Register with your work email address (a free webmail address is not accepted); no card is asked for.
+1. Create a free Lite account at <https://devgenie.smartgenie.co.uk/portal>. Any email address works and no card is asked for. Your account page also asks, if you wish, for your company name and LinkedIn URL; both are optional.
 2. Install the plugin:
 
    ```
