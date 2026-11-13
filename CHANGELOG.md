@@ -1,7 +1,10 @@
 # Changelog — the DevGenie plugin
 
-## Unreleased
+## 0.3.12
 
+- **Lite, the free plan.** `/devgenie:setup` now names your plan as the server states it, including Lite, and gives the next step: run `/devgenie:new` in your project folder.
+- **Clearer account messages.** When you are signed in but have no active account, or DevGenie could not check your account, `/devgenie:setup` shows the server's own plain message saying what to do.
+- **The optional email setting is titled "Your email"** and explained in plain words: any address, used only to label your AI token-usage records.
 - **README: the Lite path.** Get started now begins with a free Lite account (any email address, no card; the account page asks for an optional company name and LinkedIn URL), then install, `/devgenie:setup`, the sign-in command run in a terminal of your own, and `/devgenie:new`. Pro is named as the upgrade.
 - **README: the preview-key section is removed.** The preview keys ended on 5 November 2026; customers sign in with the sign-in command. The README no longer documents the key route.
 

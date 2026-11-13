@@ -27,16 +27,16 @@ Show its output verbatim, then act on the named state — do **not** paper over 
 
 Only on `ready`. Call the **`get_entitlements`** MCP tool once (it takes no credential argument — identity is resolved server-side from the sign-in).
 
-- **On success** — report the resolved plan plainly: "DevGenie is ready — you're on the **<tier>** plan." If the result says the account is not active yet, say so and point to the portal (below). Onboarding is done.
+- **On success** — if the result's `deferred_notice` is not empty, show it to the user exactly as written (the server names the plan and what it includes); otherwise say "DevGenie is ready — you're on the **<tier>** plan." Never name a plan the server did not name. Then give the next step: run `/devgenie:new` in the folder for your project. Onboarding is done.
 - **On `AUTH_INVALID`, or when the `get_entitlements` tool is not available (DevGenie shows as failed to connect)** — you are not signed in. Deliver this owned message, with the command exactly as Step 1 printed it; do **not** echo the raw error envelope:
 
   > Sign in to DevGenie: in a terminal of your own, not through Claude (a second terminal or SSH session works), run the sign-in command shown above and follow what it says. Do not run it here or with a `!` prefix: it reads from a real keyboard and refuses anything else. Then restart Claude Code and re-run `/devgenie:setup`. If DevGenie still fails to connect after you have signed in, accept Claude Code's trust prompt for this folder and try again. No account yet? Create one at https://devgenie.smartgenie.co.uk/portal.
 
-- **On `UPGRADE_REQUIRED`** — you are signed in but your plan is not active yet. Deliver this owned message:
+- **On `UPGRADE_REQUIRED`** — you are signed in, but there is no active account or plan yet; that is fixed at https://devgenie.smartgenie.co.uk/portal. Show the error's `message` exactly as written (it says what to do there: create or reactivate your account, or choose a plan), then tell the user to re-run `/devgenie:setup` once that is done.
 
-  > Your account is not active yet. Activate your plan at https://devgenie.smartgenie.co.uk/portal, then re-run `/devgenie:setup`.
+  > If the error carries no message, say: Your account is not active yet. Activate it at https://devgenie.smartgenie.co.uk/portal, then re-run `/devgenie:setup`.
 
-- **On `CORE_UNREACHABLE`** — the server is unreachable; surface it plainly and suggest checking the connection. Do not invent a degraded local mode.
+- **On `CORE_UNREACHABLE`** — DevGenie could not reach the server or could not check your account. Show the error's `message` as written and tell the user to re-run `/devgenie:setup` in a minute; if it keeps failing, check the connection. Do not invent a degraded local mode.
 
 ## Hard rules
 
