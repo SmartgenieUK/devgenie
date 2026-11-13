@@ -22,8 +22,8 @@
   "userConfig": {
     "user_email": {
       "type": "string",
-      "title": "Your work email",
-      "description": "Optional. Captured once at first run as the identity proxy for AI-spend attribution / chargeback (the EY requirement). A first-run hook writes it to ~/.devgenie/config.json, which the per-project metering hook reads as the highest-precedence source for the ledger's user_email — so attribution does not depend on a possibly-misconfigured git config. It is a named proxy, not a verified login.",
+      "title": "Your email",
+      "description": "Optional. Any email address. DevGenie uses it to label your AI token-usage records so your team can see who used what. It is saved on your machine in ~/.devgenie/config.json and is not checked against your sign-in.",
       "sensitive": false
     },
     "org": {
