@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p) => readFileSync(join(REPO, p), "utf8").split("\r").join("");
-const VERSION = "0.3.11";
+const VERSION = "0.3.12";
 const REMOVED = ["record-tokens.sh", "prepare-commit-msg", "settings.json"];
 
 let failures = 0;

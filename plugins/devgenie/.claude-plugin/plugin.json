@@ -1,7 +1,7 @@
 {
   "name": "devgenie",
   "displayName": "DevGenie",
-  "version": "0.3.11",
+  "version": "0.3.12",
   "description": "DevGenie - Governed, spec-first AI software delivery for Claude Code: an independent server-side rating gate, per-task token metering, premium templates, an audit-grade decision trail and AI-spend chargeback. AgentDev (Tier-2) adds the same governance for building your own agents and prompts, rated and audited server-side. Sign in with your SmartGenie account in the browser; plans at https://devgenie.smartgenie.co.uk/portal. Requires Claude Code v2.1.154 or later and network access.",
   "author": {
     "name": "SmartGenie Ltd",
@@ -22,8 +22,8 @@
   "userConfig": {
     "user_email": {
       "type": "string",
-      "title": "Your work email",
-      "description": "Optional. Captured once at first run as the identity proxy for AI-spend attribution / chargeback (the EY requirement). A first-run hook writes it to ~/.devgenie/config.json, which the per-project metering hook reads as the highest-precedence source for the ledger's user_email — so attribution does not depend on a possibly-misconfigured git config. It is a named proxy, not a verified login.",
+      "title": "Your email",
+      "description": "Optional. Any email address. DevGenie uses it to label your AI token-usage records so your team can see who used what. It is saved on your machine in ~/.devgenie/config.json and is not checked against your sign-in.",
       "sensitive": false
     },
     "org": {
