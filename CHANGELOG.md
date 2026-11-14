@@ -1,5 +1,9 @@
 # Changelog — the DevGenie plugin
 
+## 0.3.13
+
+- **New: `/devgenie:task`, the task pointer practice (Lite v1 starter kit).** Keeps your project's active task in one place, warns at session start when the pointer looks stale, files each session's token usage under the right task, and gives a per-task report. The practice's method is fetched from the DevGenie service when you run it (any signed-in account, Lite included); the plugin carries only the front door and its scripts. Turn it off by removing the block it adds.
+
 ## 0.3.12
 
 - **Lite, the free plan.** `/devgenie:setup` now names your plan as the server states it, including Lite, and gives the next step: run `/devgenie:new` in your project folder.
