@@ -8,7 +8,9 @@ allowed-tools: Bash(node *task.mjs *), mcp__devgenie__get_kit_files
 
 Everything stays in the current project. Nothing is sent anywhere except the kit request.
 
-## Set up (once per project)
+## Set up (once per clone)
+
+If install says git ignores files, every developer runs these steps once in their own clone.
 
 1. Call the `get_kit_files` tool with practice `task`. If it is unavailable or refuses, show the user its message and stop.
 2. Write each returned file under `.devgenie/kit/task/`, keeping its path.

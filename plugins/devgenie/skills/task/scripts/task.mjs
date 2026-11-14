@@ -52,6 +52,11 @@ function readSettings() {
 
 const entriesOf = (settings, event) => (settings.hooks?.[event] ?? []).flatMap((g) => g?.hooks ?? []);
 
+// An argument naming a ledger script is taken as a ledger hook, whatever runs it.
+const ledgerArgs = (args) => (typeof args === "string" ? args.match(/"[^"]*"|'[^']*'|\S+/g) ?? [] : Array.isArray(args) ? args : [])
+  .some((arg) => typeof arg === "string" &&
+    /record-tokens.*\.(?:sh|bash|zsh|ksh|[cm]?js|[cm]?ts|py|rb|pl|ps1|cmd|bat)$/.test(arg.replace(/^(['"])(.*)\1$/, "$2").split(/[\\/]/).at(-1)));
+
 function addEntry(settings, event, command, timeout) {
   settings.hooks ??= {};
   settings.hooks[event] ??= [];
@@ -78,6 +83,7 @@ function install(kitDir) {
   const prior = JSON.parse(readText(MANIFEST()) ?? "{}");
   const manifest = { block: false, files: {}, settings: [] };
   const done = [];
+  const written = new Set();
 
   // 1. The CLAUDE.md block.
   const claudeMd = readText(path("CLAUDE.md")) ?? "";
@@ -89,6 +95,7 @@ function install(kitDir) {
   else {
     const block = readFileSync(blockFile, "utf8").replace(/\r\n/g, "\n");
     writeFileSync(path("CLAUDE.md"), claudeMd + (claudeMd && !claudeMd.endsWith("\n\n") ? (claudeMd.endsWith("\n") ? "\n" : "\n\n") : "") + block);
+    written.add("CLAUDE.md");
     manifest.block = true;
     done.push("CLAUDE.md: added the Active task block");
   }
@@ -101,6 +108,7 @@ function install(kitDir) {
     const src = join(SKILL_DIR, "scripts", f);
     if (!existsSync(dest)) {
       copyFileSync(src, dest);
+      written.add(`.claude/hooks/${f}`);
       manifest.files[f] = sha(dest);
       done.push(`.claude/hooks/${f}: added`);
     } else if (readFileSync(dest, "utf8") === readFileSync(src, "utf8")) {
@@ -130,8 +138,12 @@ function install(kitDir) {
   } else wire("SessionStart", POINTER_CMD, 10);
   if (conflicts.has("record-tokens.sh")) {
     done.push(".claude/settings.json: no session-end entry was added, because a different record-tokens.sh is in the way (an older ledger hook files an absent pointer as 'unattributed' and does not refresh the report until the next session starts). The session-start check is unaffected.");
-  } else if (entriesOf(settings, "SessionEnd").some((h) => /record-tokens/.test(h.command ?? "") && h.command !== LEDGER_CMD)) {
+  } else if (entriesOf(settings, "SessionEnd").some((h) => (/record-tokens/.test(typeof h.command === "string" ? h.command : "") || ledgerArgs(h.args)) && h.command !== LEDGER_CMD)) {
     done.push(".claude/settings.json: a ledger hook is already wired, so none was added (an older one files an absent pointer as 'unattributed' and does not refresh the report until the next session starts)");
+    if ((prior.settings ?? []).some((s) => s.event === "SessionEnd" && s.command === LEDGER_CMD) &&
+      entriesOf(settings, "SessionEnd").some((h) => h.command === LEDGER_CMD)) {
+      manifest.settings.push({ event: "SessionEnd", command: LEDGER_CMD });
+    }
   } else {
     wire("SessionEnd", LEDGER_CMD, 30);
     if (conflicts.has("task-report.mjs")) {
@@ -144,8 +156,19 @@ function install(kitDir) {
   }
   mkdirSync(path(".claude"), { recursive: true });
   writeFileSync(path(".claude", "settings.json"), JSON.stringify(settings, null, 2) + "\n");
+  written.add(".claude/settings.json");
   mkdirSync(path(".devgenie"), { recursive: true });
   writeFileSync(MANIFEST(), JSON.stringify(manifest, null, 2) + "\n");
+  written.add(".devgenie/task-pointer.json");
+
+  const result = spawnSync("git", ["check-ignore", "-z", "--stdin"], {
+    cwd: proj, input: [...written].join("\0") + "\0", encoding: "utf8", timeout: 3000, windowsHide: true,
+  });
+  const ignored = result.status === 0 && !result.error ? (result.stdout ?? "").split("\0") : [];
+  const ignoredWrites = [...written].filter((p) => ignored.includes(p));
+  if (ignoredWrites.length) {
+    done.push(`warning: git ignores ${ignoredWrites.join(", ")}, so those files will not be shared; each developer must run /devgenie:task install once in their own clone.`);
+  }
 
   done.forEach((l) => say(l));
   say("The hooks start working in your next session. To undo all of this: node task.mjs uninstall");
