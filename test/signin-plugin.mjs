@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p) => readFileSync(join(REPO, p), "utf8").split("\r").join("");
-const VERSION = "0.3.12";
+const VERSION = "0.3.13";
 const SERVER = "https://devgenie.smartgenie.co.uk/mcp";
 
 let failures = 0;
