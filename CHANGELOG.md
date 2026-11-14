@@ -1,5 +1,10 @@
 # Changelog — the DevGenie plugin
 
+## 0.3.15
+
+- **New: `/devgenie:raise`, plain change and bug records (Lite v1 starter kit).** Raise a change request or log a bug as a record file in your project; the records kit is fetched from the DevGenie service when you run it.
+- **New: `/devgenie:coarch` and `/devgenie:executor`, two-window working (Lite v1 starter kit).** Run one Claude Code window as the architect, which plans and writes briefs, and another as the builder, which builds one issued brief at a time. Each role's instructions are fetched from the DevGenie service when you run it.
+
 ## 0.3.14
 
 - **New: `/devgenie:test`, the test-first practice (Lite v1 starter kit).** One command runs your project's tests as a gate and keeps a local report of test runs; an opt-in commit hook can run it before each commit. Its method is fetched from the DevGenie service when you run it (any signed-in account, Lite included); the plugin carries only the front door and its scripts.
