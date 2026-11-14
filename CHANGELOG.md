@@ -1,5 +1,10 @@
 # Changelog — the DevGenie plugin
 
+## 0.3.14
+
+- **New: `/devgenie:test`, the test-first practice (Lite v1 starter kit).** One command runs your project's tests as a gate and keeps a local report of test runs; an opt-in commit hook can run it before each commit. Its method is fetched from the DevGenie service when you run it (any signed-in account, Lite included); the plugin carries only the front door and its scripts.
+- **`/devgenie:task` install tells you when git will not share it.** If your project ignores `.claude/` (or any file the install writes), install says so in one line and asks each developer to run it once in their own clone. It also recognises an existing token-ledger hook that names its script in `args`, so a second one is not added.
+
 ## 0.3.13
 
 - **New: `/devgenie:task`, the task pointer practice (Lite v1 starter kit).** Keeps your project's active task in one place, warns at session start when the pointer looks stale, files each session's token usage under the right task, and gives a per-task report. The practice's method is fetched from the DevGenie service when you run it (any signed-in account, Lite included); the plugin carries only the front door and its scripts. Turn it off by removing the block it adds.
