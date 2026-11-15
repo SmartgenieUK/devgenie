@@ -1,5 +1,13 @@
 # Changelog — the DevGenie plugin
 
+## 0.3.16
+
+- **New: `/devgenie:compactorclear`, compact-or-clear advice (Lite v1 starter kit).** Ask whether to `/compact` or `/clear` your session; you get one recommendation and, for compact, a focus line to paste. It offers to save lasting notes in your project first, never runs either command itself, and logs the advice word locally.
+- **New: `/devgenie:close`, wind down a work session (Lite v1 starter kit).** Shows the active task and uncommitted work, asks whether the work is finished and what comes next, and writes one local close row only after you say yes. It never commits or pushes.
+- **New: `/devgenie:sessions`, local session records (Lite v1 starter kit).** Installs a status line showing the model and how full the context is, and a local log of each session's steps and elapsed time, with `report`, `off`, `on` and `undo`. All records stay on your machine.
+
+Each one's instructions are fetched from the DevGenie service when you run it.
+
 ## 0.3.15
 
 - **New: `/devgenie:raise`, plain change and bug records (Lite v1 starter kit).** Raise a change request or log a bug as a record file in your project; the records kit is fetched from the DevGenie service when you run it.
