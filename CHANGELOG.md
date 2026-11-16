@@ -1,5 +1,13 @@
 # Changelog — the DevGenie plugin
 
+## 0.3.17
+
+- **New: `/devgenie:feedback`, send feedback to the DevGenie team (Lite v1 starter kit).** It shows exactly what it will send, which is your note plus six short facts such as the plugin version and your OS family, and asks for one confirmation first. Your account comes from your sign-in. Feedback has its own daily allowance: 20 a day on Lite and unlimited on paid plans.
+- **New: `/devgenie:cac`, change admission (Lite v1 starter kit).** An optional guard that stops a commit Claude makes through its Bash tool if it changes code without citing an open or accepted change record from `/devgenie:raise`. Commits that change only documentation pass. It records refusals in a private file on your machine, and you can switch it off or undo it at any time. Commits from your terminal or IDE are outside its scope.
+- **New: `/devgenie:evidence` (being rolled out).** Running it shows a short message saying it is being rolled out. It calls no service and writes nothing.
+
+The instructions for feedback and cac are fetched from the DevGenie service when you run them.
+
 ## 0.3.16
 
 - **New: `/devgenie:compactorclear`, compact-or-clear advice (Lite v1 starter kit).** Ask whether to `/compact` or `/clear` your session; you get one recommendation and, for compact, a focus line to paste. It offers to save lasting notes in your project first, never runs either command itself, and logs the advice word locally.
