@@ -1,5 +1,9 @@
 # Changelog — the DevGenie plugin
 
+## 0.3.18
+
+- **New: `/devgenie:update`, update DevGenie in one command (Lite v1 starter kit).** It updates the DevGenie plugin through Claude Code's own plugin commands, shows the release notes for each version it moved through, then asks you to restart Claude Code. If a step needs you to confirm something, it stops and shows you the command to run instead of confirming on your behalf.
+
 ## 0.3.17
 
 - **New: `/devgenie:feedback`, send feedback to the DevGenie team (Lite v1 starter kit).** It shows exactly what it will send, which is your note plus six short facts such as the plugin version and your OS family, and asks for one confirmation first. Your account comes from your sign-in. Feedback has its own daily allowance: 20 a day on Lite and unlimited on paid plans.
