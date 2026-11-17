@@ -1,5 +1,12 @@
 # Changelog — the DevGenie plugin
 
+## 0.3.19
+
+- **New: `/devgenie:uninstall`, remove DevGenie's local setup (Lite v1 starter kit).** It cleans the current project by default, or every project DevGenie set up with `-all`. It first shows everything it will remove and everything it will keep, and changes nothing until you confirm. Starter files you have edited are kept and reported. Your account stays; with `-all` it reminds you to sign out first.
+- **Changed: setting up a DevGenie kit in a project now notes that project in a local list on your machine,** so `/devgenie:uninstall -all` can find it later. The list stays on your machine.
+- **Fixed: two test gates finishing at the same moment no longer fail** when the operating system briefly locks the receipt file; the gate retries the save instead.
+- **Changed: `/devgenie:evidence` (being rolled out) now links to its documentation page,** https://www.smartgenie.co.uk/devgenie/docs/evidence, so you can read how it will work.
+
 ## 0.3.18
 
 - **New: `/devgenie:update`, update DevGenie in one command (Lite v1 starter kit).** It updates the DevGenie plugin through Claude Code's own plugin commands, shows the release notes for each version it moved through, then asks you to restart Claude Code. If a step needs you to confirm something, it stops and shows you the command to run instead of confirming on your behalf.

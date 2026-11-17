@@ -184,6 +184,10 @@ if (wantHook) decide(join(dg, "test-gate-hook.mjs"), shipped("test-gate-hook.mjs
 for (const s of staged) decide(join(dg, "kit", "test", ...s.path.split("/")), s.bytes, "kit");
 
 // ---- apply ------------------------------------------------------------------------------------------------------------------
+try {
+  const { recordProject } = await import(new URL("../../uninstall/scripts/projects.mjs", import.meta.url));
+  await recordProject(project);
+} catch {}
 const files = { ...record.files };
 for (const d of decisions) {
   if (d.action === "created" || d.action === "updated") { mkdirSync(dirname(d.abs), { recursive: true }); writeFileSync(d.abs, d.bytes); files[d.r] = sha(d.bytes); }

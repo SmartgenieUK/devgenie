@@ -9,12 +9,25 @@
 // Exit codes: the command's own; 1 when the command ended by a signal or could not start; 2 when the gate is not configured
 // (nothing ran, nothing is recorded); 3 when the command passed but a report could not be written.
 import { spawn } from "node:child_process";
-import { appendFileSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { appendFileSync, readFileSync, renameSync as renameOnce, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const root = dirname(dir);
+
+// Two gates finishing together can make the receipt rename fail for a moment on Windows (a sharing error). Retry those a
+// bounded number of times; any other error, or the last failure, is thrown unchanged.
+const RENAME_TRIES = 20;
+const SHARING = new Set(["EPERM", "EBUSY", "EACCES"]);
+function renameSync(from, to) {
+  for (let i = 1; ; i++) {
+    try { return renameOnce(from, to); } catch (e) {
+      if (!SHARING.has(e?.code) || i >= RENAME_TRIES) throw e;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
+    }
+  }
+}
 const TAIL_BYTES = 64 * 1024;
 const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
 

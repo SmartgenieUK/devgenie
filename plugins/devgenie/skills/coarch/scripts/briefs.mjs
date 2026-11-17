@@ -58,7 +58,11 @@ function kitFiles(kitPath) {
   });
 }
 
-function install(kitPath) {
+async function install(kitPath) {
+  try {
+    const { recordProject } = await import(new URL("../../uninstall/scripts/projects.mjs", import.meta.url));
+    await recordProject(process.cwd());
+  } catch {}
   for (const { to, shown, body } of kitFiles(kitPath)) {
     if (present(to)) { console.log(`kept ${shown} (already there)`); continue; }
     mkdirSync(dirname(to), { recursive: true });
@@ -154,7 +158,7 @@ function set(brief, status) {
 
 const [command, ...args] = process.argv.slice(2);
 try {
-  if (command === "install") install(args[0]);
+  if (command === "install") await install(args[0]);
   else if (command === "remove") remove(args[0]);
   else if (command === "set") set(args[0], args[1]);
   else fail("usage: briefs.mjs install <kit.json> | set <brief> <status> | remove <kit.json>", 2);
