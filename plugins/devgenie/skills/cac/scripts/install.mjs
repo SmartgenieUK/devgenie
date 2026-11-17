@@ -235,7 +235,7 @@ function pruneOwned(directories) {
   }
 }
 
-function main() {
+async function main() {
   const argv = process.argv.slice(2);
   if (argv[0] === "--check-paths") {
     if (argv.length < 2) die(USAGE);
@@ -382,6 +382,10 @@ function main() {
   next.directories = [...directories].sort();
 
   // Apply only after argument, settings, manifest, source and destination validation.
+  try {
+    const { recordProject } = await import(new URL("../../uninstall/scripts/projects.mjs", import.meta.url));
+    await recordProject(project);
+  } catch {}
   for (const decision of decisions) {
     if (decision.action === "created" || decision.action === "updated") {
       mkdirSync(dirname(decision.absolute), { recursive: true });
@@ -409,4 +413,4 @@ function main() {
   say('Switch enforcement off with DEVGENIE_CAC=off or "enforce": false in .devgenie/cac.json, or run install.mjs --undo.');
 }
 
-try { main(); } catch (error) { die("Setup could not finish: " + error.message); }
+try { await main(); } catch (error) { die("Setup could not finish: " + error.message); }

@@ -71,9 +71,13 @@ function dropHandler(settings) {
     .filter((g, i) => g.hooks.length || !groups[i].hooks.length || Object.keys(g).length > 1);
 }
 
-function install() {
+async function install() {
   const settings = readSettings(), record = readRecord();
   const existed = existsSync(path(SETTINGS));
+  try {
+    const { recordProject } = await import(new URL("../../uninstall/scripts/projects.mjs", import.meta.url));
+    await recordProject(project);
+  } catch {}
   const usable = new Set();
   for (const file of FILES) {
     const bytes = readFileSync(join(here, file.split("/").at(-1)));
@@ -169,7 +173,7 @@ try {
   if (extra.length || !["install", "undo", "off", "on", "report"].includes(command)) refuse("Use sessions.mjs with install, undo, off, on or report.");
   if (command !== "report" && (["install", "undo"].includes(command) ? [SETTINGS, RECORD, ...FILES] : [SWITCH]).some(linked))
     refuse("A project path is a link, so nothing was changed.");
-  if (command === "install") install();
+  if (command === "install") await install();
   else if (command === "undo") undo();
   else if (command === "off") { write(SWITCH, ""); say("Session records are off for this project."); }
   else if (command === "on") { if (existsSync(path(SWITCH))) unlinkSync(path(SWITCH)); say("Session records are on for this project."); }

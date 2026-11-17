@@ -74,12 +74,16 @@ function removeEntry(settings, event, command) {
 
 const MANIFEST = () => path(".devgenie", "task-pointer.json");
 
-function install(kitDir) {
+async function install(kitDir) {
   const blockFile = kitDir ? join(kitDir, "claude-block.md") : "";
   if (!blockFile || !existsSync(blockFile)) refuse("install needs the fetched kit: pass the folder that holds claude-block.md (the skill fetches it from DevGenie first).");
   const blockText = readFileSync(blockFile, "utf8");
   if (!blockText.includes(START) || !blockText.includes(END)) refuse("claude-block.md in the kit is not a task pointer block, so nothing was changed.");
   const settings = readSettings(); // refuses before any change when the file cannot be parsed
+  try {
+    const { recordProject } = await import(new URL("../../uninstall/scripts/projects.mjs", import.meta.url));
+    await recordProject(proj);
+  } catch {}
   const prior = JSON.parse(readText(MANIFEST()) ?? "{}");
   const manifest = { block: false, files: {}, settings: [] };
   const done = [];
@@ -249,7 +253,7 @@ function report() {
 
 const [cmd, arg] = process.argv.slice(2);
 try {
-  if (cmd === "install") install(arg);
+  if (cmd === "install") await install(arg);
   else if (cmd === "uninstall") uninstall();
   else if (cmd === "set") set(arg);
   else if (cmd === "show") show();

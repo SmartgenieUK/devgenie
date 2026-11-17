@@ -49,7 +49,7 @@ const refusePath = (p) => {
   return 1;
 };
 
-function install(file) {
+async function install(file) {
   let kit;
   try { kit = JSON.parse(readFileSync(file, "utf8")); } catch (e) { console.error(`cannot read ${file} as JSON: ${e.message}`); return 2; }
   const files = Array.isArray(kit?.files) ? kit.files : [];
@@ -58,6 +58,10 @@ function install(file) {
   if (bad) { console.error(`refused: the path ${JSON.stringify(bad?.path)} is not a file under ${KIT_ROOT}; nothing was written`); return 1; }
   const linked = files.find((f) => escapesKitRoot(f.path));
   if (linked) return refusePath(linked.path);
+  try {
+    const { recordProject } = await import(new URL("../../uninstall/scripts/projects.mjs", import.meta.url));
+    await recordProject(process.cwd());
+  } catch {}
   for (const f of files) {
     mkdirSync(dirname(f.path), { recursive: true });
     writeFileSync(f.path, f.body.replace(/\r\n/g, "\n"));
@@ -128,7 +132,7 @@ const [cmd, ...args] = process.argv.slice(2);
 const at = args.indexOf("--script");
 const script = at >= 0 && args[at + 1] ? args[at + 1] : DEFAULT_SCRIPT;
 let code = 2;
-if (cmd === "install" && args[0]) code = install(args[0]);
+if (cmd === "install" && args[0]) code = await install(args[0]);
 else if (cmd === "guard-on") code = guardOn(script);
 else if (cmd === "guard-off") code = guardOff(script);
 else console.error("usage: kit-install.mjs install <kit.json> | guard-on [--script <path>] | guard-off [--script <path>]");
