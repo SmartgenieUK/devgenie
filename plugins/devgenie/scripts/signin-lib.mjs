@@ -6,7 +6,8 @@
 // tenant, the API audience and the server address. Node built-ins only.
 //
 // Rules this file keeps (docs/co-arch/DESIGN_cr227-client-signin_2026-11-09.md, revision 3):
-//   - no secret ever goes in a command argument: keychain and DPAPI text travel on stdin and stdout pipes;
+//   - no secret ever goes in a command argument: DPAPI text travels on stdin and stdout pipes;
+//   - macOS keeps the record as a private file, as Linux does (BUG-41: `security -i` splits a several-KB record);
 //   - on Linux and macOS the sign-in folder and files must be owned by the user with modes 700 and 600, are
 //     never symbolic links, are checked on the opened handle, and are never chmod-ed to make things work;
 //   - a lock is broken only after its owner process is confirmed to have exited, never because it is old, and
@@ -24,7 +25,8 @@ const TENANT = "2df6b9a3-243d-43ba-8a63-16e92f909056";
 
 export const FIXED = Object.freeze({
   tenant: TENANT,
-  authority: `https://${TENANT}.ciamlogin.com/${TENANT}/oauth2/v2.0`,
+  // The website's sign-in host (BUG-41): Google accepts only its redirect, so the tenant-ID host fails "Continue with Google".
+  authority: `https://devgeniecustomers.ciamlogin.com/${TENANT}/oauth2/v2.0`,
   clientId: "267d7aab-6fcc-437c-9632-e24c055f713f",
   redirectUri: "https://devgenie.smartgenie.co.uk/auth/code",
   scope: "https://devgenie.smartgenie.co.uk/mcp/mcp.access offline_access openid",
@@ -38,7 +40,6 @@ export const FIXED = Object.freeze({
 export const TOKEN_URL = `${FIXED.authority}/token`;
 export const AUTHORIZE_URL = `${FIXED.authority}/authorize`;
 export const CODE_PAGE_ORIGIN = "https://devgenie.smartgenie.co.uk";
-export const KEYCHAIN_SERVICE = "devgenie-signin";
 export const SIGNIN_PATH = join(dirname(fileURLToPath(import.meta.url)), "signin.mjs");
 export const SIGNIN_COMMAND = `node "${SIGNIN_PATH}"`;
 export const HELPER_FAIL = `DevGenie sign-in needed: run ${SIGNIN_COMMAND} in a terminal of your own.`;
@@ -264,12 +265,6 @@ function parseRecord(json) {
 
 export function loadRecord(ctx) {
   ensureDir(ctx);
-  if (ctx.platform === "darwin") {
-    const r = run(ctx, "security", ["find-generic-password", "-a", FIXED.tenant, "-s", KEYCHAIN_SERVICE, "-w"]);
-    if (r.status === 44) return null; // the item could not be found
-    if (r.status !== 0 || !B64.test(r.stdout.trim())) throw new StoreError(STORE_FAIL);
-    return parseRecord(Buffer.from(r.stdout.trim(), "base64").toString("utf8"));
-  }
   if (ctx.platform === "win32") {
     const enc = readText(ctx, fileOf(ctx, "dat"));
     if (enc === null) return null;
@@ -285,12 +280,6 @@ export function saveRecord(ctx, rec) {
   ensureDir(ctx);
   const json = JSON.stringify(pickRecord(rec));
   const b64 = Buffer.from(json, "utf8").toString("base64");
-  if (ctx.platform === "darwin") {
-    const r = run(ctx, "security", ["-i"], `add-generic-password -U -a ${FIXED.tenant} -s ${KEYCHAIN_SERVICE} -w ${b64}\n`);
-    const back = r.status === 0 ? loadRecord(ctx) : null;
-    if (!back || back.access_token !== rec.access_token) throw new StoreError(STORE_FAIL);
-    return;
-  }
   if (ctx.platform === "win32") {
     const r = run(ctx, "powershell.exe", psArgs(PS_PROTECT), b64);
     if (r.status !== 0 || !B64.test(r.stdout.trim())) throw new StoreError(STORE_FAIL);
@@ -302,11 +291,6 @@ export function saveRecord(ctx, rec) {
 
 export function deleteRecord(ctx) {
   ensureDir(ctx);
-  if (ctx.platform === "darwin") {
-    const r = run(ctx, "security", ["delete-generic-password", "-a", FIXED.tenant, "-s", KEYCHAIN_SERVICE]);
-    if (r.status !== 0 && r.status !== 44) throw new StoreError(STORE_FAIL);
-    return;
-  }
   removeFile(ctx, fileOf(ctx, ctx.platform === "win32" ? "dat" : "json"));
 }
 

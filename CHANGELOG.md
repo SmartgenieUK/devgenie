@@ -1,5 +1,11 @@
 # Changelog — the DevGenie plugin
 
+## 0.3.20
+
+- **Fixed: signing in on a Mac.** The sign-in could not be saved ("Could not reach the saved sign-in store"). It is now kept as a file only you can read, under `~/.devgenie/auth/`, as on Linux. Run the sign-in command again.
+- **Fixed: "Continue with Google" from the sign-in link.** Google refused it with "redirect_uri_mismatch"; the link now uses the same sign-in page as the website.
+- **Changed: the code prompt says the code will not show as you paste it,** and to press Enter.
+
 ## 0.3.19
 
 - **New: `/devgenie:uninstall`, remove DevGenie's local setup (Lite v1 starter kit).** It cleans the current project by default, or every project DevGenie set up with `-all`. It first shows everything it will remove and everything it will keep, and changes nothing until you confirm. Starter files you have edited are kept and reported. Your account stays; with `-all` it reminds you to sign out first.

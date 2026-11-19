@@ -90,7 +90,7 @@ export async function runSignin(argv, deps = {}) {
     const pk = makePkce(random);
     out("Open this link on any device, sign in, then copy the code the page shows.\n\n");
     out(`${buildLink(pk)}\n\n`);
-    out("Only paste a code from a sign-in you started here.\nCode: ");
+    out("Only paste a code from a sign-in you started here.\nPaste the code and press Enter (it will not show as you paste): ");
     const input = await readSecret();
     out("\n");
 
@@ -116,7 +116,7 @@ export async function runSignin(argv, deps = {}) {
 
     if (stdoutIsTTY === true && !env.NO_COLOR) await showLogo(out, ctx.sleep);
     out(`Signed in to DevGenie as ${account}. Restart any open Claude Code session to use it.\n`);
-    if (ctx.platform !== "win32" && ctx.platform !== "darwin") {
+    if (ctx.platform !== "win32") {
       out("The sign-in is kept under ~/.devgenie/auth/, readable only by you; it is as private as this home folder.\n");
     }
     return 0;
