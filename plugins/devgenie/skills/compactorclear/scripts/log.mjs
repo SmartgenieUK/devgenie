@@ -1,67 +1,28 @@
-import { appendFileSync, closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync } from "node:fs";
-import { join } from "node:path";
-
-function fail(message) {
-  console.error(message);
-  process.exit(1);
-}
-
-function inspect(path) {
-  try {
-    return lstatSync(path);
-  } catch (error) {
-    if (error.code === "ENOENT") return null;
-    throw error;
-  }
-}
-
+// Records one compact-or-clear advice word through the shared local-records library (.devgenie/events.jsonl).
+// Nothing is enforced by this logger, so a recording problem never blocks the developer (exit 0); it is never silent either:
+// every failed write prints a plain message. Only a wrong argument exits 1, because nothing was asked to be recorded.
 const args = process.argv.slice(2);
 if (args.length !== 1 || (args[0] !== "COMPACT" && args[0] !== "CLEAR")) {
-  fail("Usage: node log.mjs COMPACT or CLEAR. Supply exactly one uppercase advice word.");
+  console.error("Usage: node log.mjs COMPACT or CLEAR. Supply exactly one uppercase advice word.");
+  process.exit(1);
 }
 const advice = args[0];
 
+let appendEvent;
 try {
-  const directory = join(process.cwd(), ".devgenie");
-  const log = join(directory, "compactor.jsonl");
-  const directoryStat = inspect(directory);
-  if (directoryStat && (directoryStat.isSymbolicLink() || !directoryStat.isDirectory())) {
-    fail("Cannot log advice: .devgenie must be a directory, not a link or another file type.");
-  }
+  ({ appendEvent } = await import(new URL("../../../scripts/local-records.mjs", import.meta.url).href));
+} catch (_error) {
+  console.error("Advice was not recorded: the DevGenie records library could not be loaded. Reinstall the DevGenie plugin.");
+  process.exit(0);
+}
 
-  const logStat = inspect(log);
-  if (logStat && (logStat.isSymbolicLink() || !logStat.isFile())) {
-    fail("Cannot log advice: .devgenie/compactor.jsonl must be a regular file, not a link or another file type.");
-  }
-  if (logStat && logStat.nlink > 1) {
-    fail("Cannot log advice: .devgenie/compactor.jsonl has more than one hard link.");
-  }
-
-  if (!directoryStat) mkdirSync(directory);
-  let fd;
-  try {
-    // Omit O_CREAT so a swapped symlink cannot create a missing outside target.
-    // Known limit: someone who can already write this project and renames the log in the same instant is not stopped
-    // (full closure needs O_NOFOLLOW, absent on Windows); the line written is fixed and gains them nothing.
-    fd = openSync(log, logStat ? constants.O_WRONLY | constants.O_APPEND : "ax");
-  } catch (error) {
-    if (error.code === "EEXIST") {
-      fail("Cannot log advice: .devgenie/compactor.jsonl appeared after inspection.");
-    }
-    throw error;
-  }
-  try {
-    if (logStat) {
-      const openedStat = fstatSync(fd);
-      if (!openedStat.isFile() || openedStat.nlink !== 1
-        || openedStat.dev !== logStat.dev || openedStat.ino !== logStat.ino) {
-        throw new Error(".devgenie/compactor.jsonl changed after inspection.");
-      }
-    }
-    appendFileSync(fd, JSON.stringify({ ts: new Date().toISOString(), advice }) + "\n", "utf8");
-  } finally {
-    closeSync(fd);
+try {
+  const result = appendEvent(process.cwd(), { component: "compactor", kind: "advice", data: { advice } });
+  if (!result.ok) {
+    console.error("Advice was not recorded: " + result.message);
+    process.exit(0); // rule: fail-open-record
   }
 } catch (error) {
-  fail(`Could not append advice to the project log: ${error.message}`);
+  console.error("Advice was not recorded: " + error.message);
+  process.exit(0);
 }
