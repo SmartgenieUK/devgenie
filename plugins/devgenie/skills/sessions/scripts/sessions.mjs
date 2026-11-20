@@ -12,7 +12,9 @@ const linked = (name) => name.split("/").some((_, i, parts) =>
   lstatSync(path(parts.slice(0, i + 1).join("/")), { throwIfNoEntry: false })?.isSymbolicLink());
 const SETTINGS = ".claude/settings.json", RECORD = ".devgenie/sessions.install.json";
 const SWITCH = ".devgenie/sessions.off";
-const FILES = ["statusline", "session-end", "step-log"].map((name) => `.devgenie/sessions/${name}.mjs`);
+// The two hook scripts import the shared records library from a copy beside them, so the library is the fourth recorded file.
+const FILES = ["statusline", "session-end", "step-log", "local-records"].map((name) => `.devgenie/sessions/${name}.mjs`);
+const source = (file) => (file.endsWith("/local-records.mjs") ? join(here, "../../../scripts/local-records.mjs") : join(here, file.split("/").at(-1)));
 const HANDLER = { type: "command", command: "node", args: ["${CLAUDE_PROJECT_DIR}/.devgenie/sessions/session-end.mjs"], timeout: 10 };
 const STATUS = { type: "command", command: 'node "${CLAUDE_PROJECT_DIR}/.devgenie/sessions/statusline.mjs"' };
 const plain = (obj) => obj !== null && typeof obj === "object" && !Array.isArray(obj);
@@ -72,6 +74,7 @@ function dropHandler(settings) {
 }
 
 async function install() {
+  if (!existsSync(source(FILES[3]))) refuse("The DevGenie records library is missing from this plugin, so nothing was changed.");
   const settings = readSettings(), record = readRecord();
   const existed = existsSync(path(SETTINGS));
   try {
@@ -80,16 +83,24 @@ async function install() {
   } catch {}
   const usable = new Set();
   for (const file of FILES) {
-    const bytes = readFileSync(join(here, file.split("/").at(-1)));
+    const bytes = readFileSync(source(file));
     if (!existsSync(path(file))) {
       write(file, bytes);
       record.files[file] = sha(bytes);
       usable.add(file);
       say(`added ${file}`);
-    } else if (readFileSync(path(file)).equals(bytes)) {
-      usable.add(file);
-      say(`already present ${file}`);
-    } else say(`kept ${file} because it differs from the bundled script`);
+    } else {
+      const current = readFileSync(path(file));
+      if (current.equals(bytes)) {
+        usable.add(file);
+        say(`already present ${file}`);
+      } else if (record.files[file] === sha(current)) { // an older copy this installer wrote and the developer has not changed
+        write(file, bytes);
+        record.files[file] = sha(bytes);
+        usable.add(file);
+        say(`updated ${file}`);
+      } else say(`kept ${file} because it differs from the bundled script`);
+    }
   }
   let changed = false;
   if (!("statusLine" in settings) && usable.has(FILES[0])) {
@@ -151,12 +162,18 @@ function rows(name) {
   });
 }
 
-function report() {
-  const latest = new Map(), tokens = new Map();
-  for (const row of rows(".devgenie/sessions.jsonl")) {
-    if (typeof row.session !== "string" || !Number.isFinite(Date.parse(row.start)) || !Number.isFinite(row.duration_s)) continue;
-    latest.delete(row.session);
-    latest.set(row.session, row);
+async function report() {
+  let readEvents;
+  try { ({ readEvents } = await import(new URL("../../../scripts/local-records.mjs", import.meta.url).href)); }
+  catch { refuse("The DevGenie records library could not be loaded, so the report cannot run. Reinstall the DevGenie plugin."); }
+  const { rows: all, health } = readEvents(project);
+  const sessionRows = all.filter((r) => r.component === "sessions" && r.kind === "session"); // rule: report-rows
+  const latest = new Map(), tokens = new Map(), notes = [];
+  let skipped = 0;
+  for (const row of sessionRows) {
+    if (!Number.isFinite(Date.parse(row.data.start))) { skipped += 1; continue; }
+    latest.delete(row.data.session);
+    latest.set(row.data.session, row.data);
   }
   for (const row of rows("metrics/token-ledger.jsonl")) {
     const billed = row.tokens?.total_billed;
@@ -166,6 +183,16 @@ function report() {
     const seconds = Math.round(row.duration_s);
     say(`${row.start}\t${Math.floor(seconds / 60)}m ${seconds % 60}s\t${tokens.get(row.session) ?? "-"}\t${row.session.replace(/[\r\n\t]/g, " ")}`);
   }
+  for (const [name, h] of Object.entries(health)) {
+    const parts = [];
+    if (h.state === "unreadable") parts.push(`unreadable (${h.reason})`);
+    if (h.malformed) parts.push(`${h.malformed} malformed`);
+    if (h.unsupported) parts.push(`${h.unsupported} unsupported`);
+    if (h.incompleteTail) parts.push("an unfinished last line");
+    if (parts.length) notes.push(`note: .devgenie/${name}: ${parts.join(", ")}`);
+  }
+  if (skipped) notes.push(`note: ${skipped} session row${skipped === 1 ? "" : "s"} skipped: its start is not a date`);
+  for (const note of notes) console.error(note); // rule: report-health
 }
 
 try {
@@ -177,7 +204,7 @@ try {
   else if (command === "undo") undo();
   else if (command === "off") { write(SWITCH, ""); say("Session records are off for this project."); }
   else if (command === "on") { if (existsSync(path(SWITCH))) unlinkSync(path(SWITCH)); say("Session records are on for this project."); }
-  else report();
+  else await report();
 } catch (err) {
   console.error(err instanceof Refusal ? err.message : "The sessions command could not access a local file.");
   process.exitCode = 1;

@@ -28,14 +28,31 @@ import fs from "node:fs";
 import path from "node:path";
 
 export const MAX_BYTES = 8192;
-// KINDS[component][kind][eventVersion] is an exact payload schema: key -> list of allowed strings, or "string" (up to 256 characters).
+// KINDS[component][kind][eventVersion] is an exact payload schema: key -> list of allowed strings, "string" (up to 256 characters)
+// or "number" (a finite number).
 // A producer adds its own entry, with its own exclusions: no code, prompts, file contents, transcripts, command output or credentials.
-export const KINDS = { compactor: { advice: { 1: { advice: ["COMPACT", "CLEAR"] } } } };
+export const KINDS = {
+  compactor: { advice: { 1: { advice: ["COMPACT", "CLEAR"] } } },
+  // Sessions and steps (CR-237 slice 2). A session event: the session id, the first and last transcript timestamps and the elapsed seconds.
+  // A step event: the step and outcome words the practice supplied, the ACTIVE TASK slug and the project folder name.
+  sessions: {
+    session: { 1: { session: "string", start: "string", end: "string", duration_s: "number" } },
+    step: { 1: { step: "string", outcome: "string", task: "string", project: "string" } },
+  },
+};
 // Old per-skill record files that are read alongside the stream. A later slice adds a row here, not a reader.
 const LEGACY = [{
   file: "compactor.jsonl", component: "compactor", kind: "advice", keys: ["advice", "ts"],
   valid: (r) => typeof r.ts === "string" && (r.advice === "COMPACT" || r.advice === "CLEAR"),
   toData: (r) => ({ advice: r.advice }),
+}, {
+  file: "sessions.jsonl", component: "sessions", kind: "session", keys: ["duration_s", "end", "session", "start", "ts"],
+  valid: (r) => typeof r.ts === "string" && typeof r.session === "string" && typeof r.start === "string" && Number.isFinite(Date.parse(r.start)) && typeof r.end === "string" && Number.isFinite(r.duration_s),
+  toData: (r) => ({ session: r.session, start: r.start, end: r.end, duration_s: r.duration_s }),
+}, {
+  file: "step-ledger.jsonl", component: "sessions", kind: "step", keys: ["outcome", "project", "step", "task", "tokens", "ts"],
+  valid: (r) => ["ts", "step", "outcome", "project", "task"].every((k) => typeof r[k] === "string") && r.tokens === null,
+  toData: (r) => ({ step: r.step, outcome: r.outcome, task: r.task, project: r.project }),
 }];
 const ENVELOPE = ["component", "data", "event_version", "id", "kind", "ts", "v"];
 const CONTENDED = ["EEXIST", "EPERM", "EACCES", "EBUSY"];
@@ -47,10 +64,10 @@ const plain = (o) => typeof o === "object" && o !== null && !Array.isArray(o);
 const sameKeys = (o, keys) => JSON.stringify(Object.keys(o).sort()) === JSON.stringify([...keys].sort());
 const schemaFor = (c, k, v) => KINDS[c]?.[k]?.[v]; // rule: kinds-table
 const schemaOk = (s) => plain(s);
+const valueOk = (rule, v) => Array.isArray(rule) ? typeof v === "string" && rule.includes(v) : rule === "number" ? Number.isFinite(v) : rule === "string" && typeof v === "string" && v.length <= 256; // rule: number-rule
 function payloadOk(schema, data) {
   if (!plain(data) || !sameKeys(data, Object.keys(schema))) return false;
-  return Object.entries(schema).every(([key, rule]) => typeof data[key] === "string"
-    && (Array.isArray(rule) ? rule.includes(data[key]) : rule === "string" && data[key].length <= 256));
+  return Object.entries(schema).every(([key, rule]) => valueOk(rule, data[key]));
 }
 function lstatOrNull(p) {
   try { return fs.lstatSync(p); } catch (error) { if (error.code === "ENOENT") return null; throw error; }

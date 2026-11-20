@@ -89,7 +89,7 @@ function readRecords(p) {
         if (!hashOk(hash)) refuse("An install record has an invalid file hash.");
         if (name === "task") { validPath(file); add(".claude/hooks/" + file); }
         else add(file);
-        if (name === "sessions" && !["statusline", "session-end", "step-log"].some((f) => file === ".devgenie/sessions/" + f + ".mjs")) refuse("Unexpected session output path.");
+        if (name === "sessions" && !["statusline", "session-end", "step-log", "local-records"].some((f) => file === ".devgenie/sessions/" + f + ".mjs")) refuse("Unexpected session output path.");
         if (name === "cac" && ![".devgenie/cac-check.mjs", ".devgenie/cac-hook.mjs"].includes(file) && !file.startsWith(".devgenie/kit/cac/")) refuse("Unexpected admission output path.");
       }
       if (name === "task") {
