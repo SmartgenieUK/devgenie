@@ -10,5 +10,5 @@ Run this only because the developer typed `/devgenie:sessions`. DevGenie holds t
 
 1. Fetch the practice. Call `get_kit_files` with `practice: "sessions"`. On an error, show the returned message exactly as written and stop.
 2. Ask the developer whether to set this project up, before writing anything. If they decline, stop: nothing is written to the project, because the fetch only reads. If they agree, run `node "${CLAUDE_SKILL_DIR}/scripts/sessions.mjs" install`.
-3. Follow the returned `instructions` exactly. The installer copies `scripts/statusline.mjs`, `scripts/session-end.mjs` and `scripts/step-log.mjs` into `.devgenie/sessions/`. Start a new session for the hooks to take effect.
+3. Follow the returned `instructions` exactly. The installer copies `scripts/statusline.mjs`, `scripts/session-end.mjs` and `scripts/step-log.mjs` into `.devgenie/sessions/`, with a copy of the shared records library (`local-records.mjs`) beside them, and refreshes an unchanged older copy when it is run again. Start a new session for the hooks to take effect.
 4. For report, off, on or undo, run `node "${CLAUDE_SKILL_DIR}/scripts/sessions.mjs" report`, replacing `report` with the requested command.

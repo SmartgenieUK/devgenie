@@ -1,5 +1,11 @@
 # Changelog — the DevGenie plugin
 
+## 0.3.22
+
+- **Changed: `/devgenie:sessions` records each session and each step in the shared event log,** `.devgenie/events.jsonl`, through the same library as compact-or-clear. Existing `.devgenie/sessions.jsonl` and `.devgenie/step-ledger.jsonl` files are left as they are and still read, so the report counts each session once. Run `/devgenie:sessions` again in a project to pick up the new scripts.
+- **Changed: when a step cannot be recorded, the step logger says so every time and carries on** instead of failing the step; a wrong command still fails.
+- **Changed: `/devgenie:uninstall` also removes the event-log library copy that `/devgenie:sessions` now installs.**
+
 ## 0.3.21
 
 - **New: `/devgenie:evidence`, the evidence gate (Lite v1 starter kit).** Switch it on in a project and Claude must cite the file and lines behind what it writes about your project; a write without that evidence is refused and noted in a local report. It is opt-in, one project at a time, and needs Node.js 18 or later and a DevGenie sign-in. Run the skill again to switch it off.
