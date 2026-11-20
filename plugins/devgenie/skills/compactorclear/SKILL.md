@@ -17,4 +17,4 @@ The developer types `/compact` or `/clear`. Never run `/compact` or `/clear` on 
 
 2. Follow the response's `instructions` verbatim, in order.
 
-3. Run `node "${CLAUDE_PLUGIN_ROOT}/skills/compactorclear/scripts/log.mjs" <advice>` from the project root, replacing `<advice>` with exactly `COMPACT` or `CLEAR` as given by the served instructions. This fulfils the served method's final logging step once; it is not a second invocation. If the script refuses, show its message plainly and stop.
+3. Run `node "${CLAUDE_PLUGIN_ROOT}/skills/compactorclear/scripts/log.mjs" <advice>` from the project root, replacing `<advice>` with exactly `COMPACT` or `CLEAR` as given by the served instructions. This fulfils the served method's final logging step once; it is not a second invocation. If the script prints a message, it could not record the advice: show that message plainly every time; the advice itself still stands.

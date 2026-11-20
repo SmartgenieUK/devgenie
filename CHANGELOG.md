@@ -1,5 +1,10 @@
 # Changelog — the DevGenie plugin
 
+## 0.3.21
+
+- **New: `/devgenie:evidence`, the evidence gate (Lite v1 starter kit).** Switch it on in a project and Claude must cite the file and lines behind what it writes about your project; a write without that evidence is refused and noted in a local report. It is opt-in, one project at a time, and needs Node.js 18 or later and a DevGenie sign-in. Run the skill again to switch it off.
+- **Changed: `/devgenie:compactorclear` records each compact or clear in one shared event log,** `.devgenie/events.jsonl` in the project, which other DevGenie commands will use too. An existing `.devgenie/compactor.jsonl` is left as it is.
+
 ## 0.3.20
 
 - **Fixed: signing in on a Mac.** The sign-in could not be saved ("Could not reach the saved sign-in store"). It is now kept as a file only you can read, under `~/.devgenie/auth/`, as on Linux. Run the sign-in command again.
